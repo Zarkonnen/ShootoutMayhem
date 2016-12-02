@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Template</title>
+        <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+        <script src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+    </head>
+    <body>
+        <canvas width="800" height="600" id="gameCanvas"></canvas>
+        <script>
+
+/** THE GAME ITSELF **********************************************************/
+var TSZ = 40; // Tile size
+var MSZ = 50; // Map size
+
+var tileTypes = {
+    dirt: {
+        img: {x: 0, y: 0, w: TSZ, h: TSZ},
+        wall: false
+    },
+    dirtWall: {
+        img: {x: 1*TSZ, y: 0, w: TSZ, h: TSZ},
+        wall: true
+    }
+};
+
+var playerTypes = {
+    taquitoJames: {
+        img: {x: 0, y: 1*TSZ, w: TSZ, h: TSZ},
+        speed: 0.3
+    }
+};
+
+var player = {
+    type: playerTypes.taquitoJames,
+    x: MSZ * TSZ / 2,
+    y: MSZ * TSZ / 2,
+    aim: 0,
+    hp: 10
+};
+
+var map = [];
+
+function generateMap() {
+    map = new Array(MSZ);
+    for (var i = 0; i < MSZ; i++) {
+        map[i] = new Array(MSZ);
+    }
+    for (var y = 0; y < MSZ; y++) { for (var x = 0; x < MSZ; x++) {
+        map[y][x] = (y == 0 || y == MSZ - 1 || x == 0 || x == MSZ - 1) ? tileTypes.dirtWall : tileTypes.dirt;
+    }}
+}
+
+generateMap();
+
+function input(ms) {
+    if (down("W")) { 
+        player.y -= player.type.speed * ms;
+    }
+    if (down("S")) { 
+        player.y += player.type.speed * ms;
+    }
+    if (down("A")) { 
+        player.x -= player.type.speed * ms;
+    }
+    if (down("D")) { 
+        player.x += player.type.speed * ms;
+    }
+}
+
+function update(ms) {
+    // TODO
+}
+
+var graphicsImage = new Image();
+graphicsImage.src = "gfx.png";
+
+function img(img, x, y) {
+    c.drawImage(graphicsImage, img.x, img.y, img.w, img.h, x, y, img.w, img.h);
+}
+
+function draw() {
+    c.fillStyle = "#333333";
+    c.fillRect(0, 0, canvas.width, canvas.height);
+    c.translate(canvas.width / 2 - player.x - TSZ / 2, canvas.height / 2 - player.y - TSZ / 2);
+    for (var y = 0; y < MSZ; y++) { for (var x = 0; x < MSZ; x++) {
+        img(map[y][x].img, x * TSZ, y * TSZ);
+    }}
+    img(player.type.img, player.x, player.y);
+    c.resetTransform();
+}
+
+
+/** THE GAME "ENGINE" ********************************************************/
+var canvas = document.getElementById("gameCanvas");
+var c = canvas.getContext("2d");
+var keys = {};
+var click = null;
+var cursor = null;
+
+// Listen for key presses.
+function canvasKeyDown(e) {
+    keys[String.fromCharCode(e.which)] = true;
+}
+
+function canvasKeyUp(e) {
+    keys[String.fromCharCode(e.which)] = false;
+}
+
+function down(key) {
+    return !!keys[key];
+}
+
+$('body').keydown(canvasKeyDown);
+$('body').keyup(canvasKeyUp);
+
+// Listen for mouse stuff.
+function canvasClick(e) {
+    click = { "x": e.offsetX, "y": e.offsetY };
+}
+
+function canvasMove(e) {
+    cursor = { "x": e.offsetX, "y": e.offsetY };
+}
+
+$('#gameCanvas').click(canvasClick).mousemove(canvasMove);
+
+// Set up game loop.
+var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
+var lastUpdate = new Date().getTime();
+
+function nextFrame() {
+    var currentTime = new Date().getTime();
+    input(currentTime - lastUpdate);
+    click = null;
+    update(currentTime - lastUpdate);
+    draw();
+    lastUpdate = currentTime;
+    requestAnimationFrame(nextFrame);
+}
+
+// Once everything is set up, start game loop.
+requestAnimationFrame(nextFrame);
+        </script>
+    </body>
+</html>
