@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Template</title>
+        <title>Unclear Throne</title>
         <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
         <script src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
     </head>
@@ -12,6 +12,86 @@
 /** THE GAME ITSELF **********************************************************/
 var TSZ = 40; // Tile size
 var MSZ = 50; // Map size
+
+var weaponTypes = {
+    sixShooter: {
+        img: {x:0, y:80, w:14, h:7},
+        shot: {x:16, y:81, w:9, h:5},
+        reload: 700,
+        numShots: 1,
+        dmg: 2,
+        range: 300,
+        speed: 0.5,
+        jitter: 0.05
+    },
+    rifle: {
+        img: {x:0, y:90, w:32, h:10},
+        shot: {x:16, y:81, w:9, h:5},
+        reload: 1500,
+        numShots: 1,
+        dmg: 3,
+        range: 700,
+        speed: 0.8,
+        jitter: 0.01
+    },
+    shotgun: {
+        img: {x:0, y:102, w:27, h:10},
+        shot: {x:16, y:81, w:9, h:5},
+        reload: 1800,
+        numShots: 5,
+        dmg: 1,
+        range: 200,
+        speed: 0.4,
+        jitter: 0.2
+    },
+    gatlingGun: {
+        img: {x:41, y:81, w:37, h:11},
+        shot: {x:16, y:81, w:9, h:5},
+        reload: 200,
+        numShots: 1,
+        dmg: 2,
+        range: 500,
+        speed: 0.6,
+        jitter: 0.1
+    },
+    abyssalProjector: {
+        img: {x:41, y:94, w:30, h:11},
+        shot: {x:74, y:96, w:5, h:5},
+        reload: 50,
+        numShots: 1,
+        dmg: 1,
+        range: 500,
+        speed: 0.3,
+        jitter: 0
+    }
+};
+
+var enemyTypes = {
+    blackHat: {
+        img: {x: 3*TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
+        speed: 0.2,
+        hp: 3,
+        weapon: weaponTypes.sixShooter
+    },
+    tumbleweed: {
+        img: {x: 4*TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
+        speed: 0.3,
+        hp: 1,
+        weapon: weaponTypes.shotgun
+    },
+    angryPony: {
+        img: {x: 4*TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
+        speed: 0.4,
+        hp: 5,
+        weapon: weaponTypes.sixShooter
+    },
+    train: {
+        img: {x: 5*TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
+        speed: 0.1,
+        hp: 9,
+        weapon: weaponTypes.gatlingGun
+    }
+};
 
 var tileTypes = {
     dirt: {
@@ -27,27 +107,32 @@ var tileTypes = {
 var playerTypes = {
     taquitoJames: {
         img: {x: 0, y: 1*TSZ, w: TSZ, h: TSZ},
+        hp: 6,
         speed: 0.3
     },
     elGato: {
         img: {x: TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
+        hp: 9,
         speed: 0.3
     },
     spur: {
         img: {x: 2*TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
-        speed: 0.3
+        hp: 6,
+        speed: 0.45
     }
 };
 
 var player = {
     type: playerTypes.taquitoJames,
+    weapon: weaponTypes.sixShooter,
+    reload: 0,
     x: MSZ * TSZ / 2,
     y: MSZ * TSZ / 2,
-    aim: 0,
-    hp: 10
+    hp: 6
 };
 
 var map = [];
+var enemies = [];
 
 function generateMap() {
     map = new Array(MSZ);
@@ -57,9 +142,40 @@ function generateMap() {
     for (var y = 0; y < MSZ; y++) { for (var x = 0; x < MSZ; x++) {
         map[y][x] = (y == 0 || y == MSZ - 1 || x == 0 || x == MSZ - 1) ? tileTypes.dirtWall : tileTypes.dirt;
     }}
+    for (var i = 0; i < 30; i++) {
+        var x = Math.random() * MSZ * TSZ;
+        var y = Math.random() * MSZ * TSZ;
+        if (wallAt(x, y) || wallAt(x + TSZ, y) || wallAt(x, y + TSZ) || wallAt(x + TSZ, y + TSZ)) {
+            continue;
+        }
+        var type = [enemyTypes.blackHat, enemyTypes.tumbleweed, enemyTypes.angryPony, enemyTypes.train][Math.floor(Math.random() * 4)];
+        enemies.push({
+            type: type,
+            x: x,
+            y: y,
+            reload: 0,
+            hp: type.hp
+        });
+    }
 }
 
 generateMap();
+
+var shots = [];
+
+function shoot(weapon, x, y, angle, byPlayer) {
+    shots.push({
+        weapon: weapon,
+        srcX: x,
+        srcY: y,
+        x: x,
+        y: y,
+        dx: Math.cos(angle) * weapon.speed,
+        dy: Math.sin(angle) * weapon.speed,
+        angle: angle,
+        byPlayer: byPlayer
+    });
+}
 
 function wallAt(x, y) {
     x = Math.floor(x / TSZ);
@@ -80,10 +196,37 @@ function input(ms) {
     if (down("D") && !wallAt(player.x + TSZ + player.type.speed * ms, player.y)) { 
         player.x += player.type.speed * ms;
     }
+    if (click && player.reload == 0) {
+        player.reload = player.weapon.reload;
+        var angle = Math.atan2(click.y - canvas.height / 2, click.x - canvas.width / 2);
+        shoot(
+            player.weapon,
+            player.x + TSZ / 2 + Math.cos(angle) * player.weapon.img.w / 2,
+            player.y + TSZ / 2,
+            angle,
+            true);
+    }
+    click = null;
 }
 
 function update(ms) {
-    // TODO
+    player.reload = Math.max(player.reload - ms, 0);
+    for (var i = 0; i < shots.length; i++) {
+        var remove = false;
+        var shot = shots[i];
+        shot.x += shot.dx * ms;
+        shot.y += shot.dy * ms;
+        if ((shot.x - shot.srcX) * (shot.x - shot.srcX) + (shot.y - shot.srcY) * (shot.y - shot.srcY) > shot.weapon.range * shot.weapon.range) {
+            remove = true;
+        }
+        if (wallAt(shot.x, shot.y)) {
+            remove = true;
+        }
+        if (remove) {
+            shots.splice(i, 1);
+            i--;
+        }
+    }
 }
 
 var graphicsImage = new Image();
@@ -100,14 +243,27 @@ function draw() {
     for (var y = 0; y < MSZ; y++) { for (var x = 0; x < MSZ; x++) {
         img(map[y][x].img, x * TSZ, y * TSZ);
     }}
-    img(player.type.img, player.x, player.y);
-    c.resetTransform();
-    
-    if (cursor) {
-        c.fillStyle = "white";
-        c.fillRect(cursor.x - 10, cursor.y - 1, 20, 2);
-        c.fillRect(cursor.x - 1, cursor.y - 10, 2, 20);
+    for (var i = 0; i < enemies.length; i++) {
+        var enemy = enemies[i];
+        img(enemy.type.img, enemy.x, enemy.y);    
     }
+    img(player.type.img, player.x, player.y);
+    for (var i = 0; i < shots.length; i++) {
+        var shot = shots[i];
+        c.translate(shot.x, shot.y);
+        c.rotate(shot.angle);
+        img(shot.weapon.shot, -shot.weapon.shot.w / 2, -shot.weapon.shot.h / 2);
+        c.resetTransform();
+        c.translate(canvas.width / 2 - player.x - TSZ / 2, canvas.height / 2 - player.y - TSZ / 2);
+    }
+    var weaponAngle = Math.atan2(cursor.y - canvas.height / 2, cursor.x - canvas.width / 2);
+    c.translate(player.x + TSZ / 2, player.y + TSZ / 2);
+    c.rotate(weaponAngle);
+    img(player.weapon.img, 0, 0);
+    c.resetTransform(); 
+    c.fillStyle = "white";
+    c.fillRect(cursor.x - 10, cursor.y - 1, 20, 2);
+    c.fillRect(cursor.x - 1, cursor.y - 10, 2, 20);
 }
 
 
@@ -116,7 +272,7 @@ var canvas = document.getElementById("gameCanvas");
 var c = canvas.getContext("2d");
 var keys = {};
 var click = null;
-var cursor = null;
+var cursor = {x: 300, y: 300};
 
 // Listen for key presses.
 function canvasKeyDown(e) {

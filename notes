@@ -1,0 +1,40 @@
++ respecting wall-ness
+- map gen
++ weapons
++ enemies
+- HP indicator
+- harm
+- restart game
+- player select
+- sequence of levels
+- audio
+- abilities
+
+
+Ability ideas:
+- each missed shot fills up a rage meter
+- temp invisibility
+- passive: faster shots
+- gain HP from multikills
+- gain HP at level start
+- spinning 360 degree melee attack
+- leap ("teleport")
+- icy trail
+
+El Gato: 9 HP, can leap
+Taquito James: Rage meter, faster levelling
+S.P.U.R: Spin attack, faster movement
+
+Weapons:                Acc     Dmg     Rel     Rng
+- Six-shooter           5       4       5       5
+- Rifle                 9       6       9       9
+- Shotgun               2       8       9       2
+- Gatling gun           3       3       1       6
+- Grenades              5       9       6       5
+- Abyssal Projector     9       2       1       9
+
+Enemy
+- Black Hat
+- Sentient Tumbleweed
+- Angry Pony
+- T.R.A.I.N
