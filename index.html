@@ -6,7 +6,7 @@
         <script src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
     </head>
     <body>
-        <canvas width="800" height="600" id="gameCanvas"></canvas>
+        <canvas width="800" height="600" id="gameCanvas" style="cursor: none;"></canvas>
         <script>
 
 /** THE GAME ITSELF **********************************************************/
@@ -53,17 +53,23 @@ function generateMap() {
 
 generateMap();
 
+function wallAt(x, y) {
+    x = Math.floor(x / TSZ);
+    y = Math.floor(y / TSZ);
+    return x < 0 || x >= MSZ || y < 0 || y >= MSZ || map[y][x].wall;
+}
+
 function input(ms) {
-    if (down("W")) { 
+    if (down("W") && !wallAt(player.x, player.y - player.type.speed * ms)) {
         player.y -= player.type.speed * ms;
     }
-    if (down("S")) { 
+    if (down("S") && !wallAt(player.x, player.y + TSZ + player.type.speed * ms)) { 
         player.y += player.type.speed * ms;
     }
-    if (down("A")) { 
+    if (down("A") && !wallAt(player.x - player.type.speed * ms, player.y)) { 
         player.x -= player.type.speed * ms;
     }
-    if (down("D")) { 
+    if (down("D") && !wallAt(player.x + TSZ + player.type.speed * ms, player.y)) { 
         player.x += player.type.speed * ms;
     }
 }
@@ -88,6 +94,12 @@ function draw() {
     }}
     img(player.type.img, player.x, player.y);
     c.resetTransform();
+    
+    if (cursor) {
+        c.fillStyle = "white";
+        c.fillRect(cursor.x - 10, cursor.y - 1, 20, 2);
+        c.fillRect(cursor.x - 1, cursor.y - 10, 2, 20);
+    }
 }
 
 
