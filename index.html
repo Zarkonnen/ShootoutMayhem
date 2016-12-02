@@ -24,7 +24,7 @@ var weaponTypes = {
         numShots: 1,
         dmg: 2,
         range: 300,
-        speed: 0.6,
+        speed: 0.4,
         jitter: 0.05
     },
     sixShooter: {
@@ -90,19 +90,19 @@ var enemyTypes = {
         img: {x: 4*TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
         speed: 0.3,
         hp: 1,
-        weapon: weaponTypes.shotgun
+        weapon: weaponTypes.slowSixShooter
     },
     angryPony: {
         img: {x: 5*TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
         speed: 0.4,
         hp: 5,
-        weapon: weaponTypes.sixShooter
+        weapon: weaponTypes.slowSixShooter
     },
     train: {
         img: {x: 6*TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
         speed: 0.1,
         hp: 9,
-        weapon: weaponTypes.gatlingGun
+        weapon: weaponTypes.sixShooter
     }
 };
 
@@ -114,6 +114,26 @@ var tileTypes = {
     dirtWall: {
         img: {x: 1*TSZ, y: 0, w: TSZ, h: TSZ},
         wall: true
+    },
+    barrel: {
+        img: {x: 2*TSZ, y: 0, w: TSZ, h: TSZ},
+        wall: false
+    },
+    fence: {
+        img: {x: 3*TSZ, y: 0, w: TSZ, h: TSZ},
+        wall: false
+    },
+    skull: {
+        img: {x: 4*TSZ, y: 0, w: TSZ, h: TSZ},
+        wall: false
+    },
+    cactus: {
+        img: {x: 5*TSZ, y: 0, w: TSZ, h: TSZ},
+        wall: false
+    },
+    flower: {
+        img: {x: 6*TSZ, y: 0, w: TSZ, h: TSZ},
+        wall: false
     }
 };
 
@@ -217,13 +237,20 @@ function generateMap() {
         var r = Math.ceil(Math.random() * 7);
         if (canSplort(x, y, r)) { splort(x, y, r); }
     }
-    for (var i = 0; i < 30; i++) {
+    for (var i = 0; i < MSZ * MSZ / 20; i++) {
+        var x = Math.floor(Math.random() * MSZ);
+        var y = Math.floor(Math.random() * MSZ);
+        if (!map[y][x].wall) {
+            map[y][x] = [tileTypes.barrel, tileTypes.fence, tileTypes.skull, tileTypes.cactus, tileTypes.flower][Math.floor(Math.random() * 5)];
+        }
+    }
+    while (enemies.length < 16) {
         var x = Math.random() * MSZ * TSZ;
         var y = Math.random() * MSZ * TSZ;
         if (wallAt(x, y) || wallAt(x + TSZ, y) || wallAt(x, y + TSZ) || wallAt(x + TSZ, y + TSZ)) {
             continue;
         }
-        if ((x - MSZ * TSZ / 2) * (x - MSZ * TSZ / 2) + (y - MSZ * TSZ / 2) * (y - MSZ * TSZ / 2) < 200 * 200) {
+        if ((x - MSZ * TSZ / 2) * (x - MSZ * TSZ / 2) + (y - MSZ * TSZ / 2) * (y - MSZ * TSZ / 2) < 300 * 300) {
             continue;
         }
         var type = [enemyTypes.blackHat, enemyTypes.tumbleweed, enemyTypes.angryPony, enemyTypes.train][Math.floor(Math.random() * 4)];
@@ -231,7 +258,7 @@ function generateMap() {
             type: type,
             x: x,
             y: y,
-            reload: 0,
+            reload: Math.floor(type.weapon.reload * Math.random()),
             hp: type.hp,
             noticed: false,
             moveWait: 0
@@ -387,7 +414,7 @@ function img(img, x, y) {
 }
 
 function draw() {
-    c.fillStyle = "#333333";
+    c.fillStyle = "#2e1d11";
     c.fillRect(0, 0, canvas.width, canvas.height);
     c.translate(canvas.width / 2 - player.x - TSZ / 2, canvas.height / 2 - player.y - TSZ / 2);
     for (var y = 0; y < MSZ; y++) { for (var x = 0; x < MSZ; x++) {
