@@ -12,6 +12,9 @@
 /** THE GAME ITSELF **********************************************************/
 var TSZ = 40; // Tile size
 var MSZ = 50; // Map size
+var NOTICE_RANGE = 550;
+var PURSUE_RANGE = 700;
+var FOLLOW_RANGE = 190;
 
 var weaponTypes = {
     sixShooter: {
@@ -21,7 +24,7 @@ var weaponTypes = {
         numShots: 1,
         dmg: 2,
         range: 300,
-        speed: 0.5,
+        speed: 1.0,
         jitter: 0.05
     },
     rifle: {
@@ -31,7 +34,7 @@ var weaponTypes = {
         numShots: 1,
         dmg: 3,
         range: 700,
-        speed: 0.8,
+        speed: 1.6,
         jitter: 0.01
     },
     shotgun: {
@@ -41,7 +44,7 @@ var weaponTypes = {
         numShots: 5,
         dmg: 1,
         range: 200,
-        speed: 0.4,
+        speed: 0.8,
         jitter: 0.2
     },
     gatlingGun: {
@@ -51,7 +54,7 @@ var weaponTypes = {
         numShots: 1,
         dmg: 2,
         range: 500,
-        speed: 0.6,
+        speed: 1.2,
         jitter: 0.1
     },
     abyssalProjector: {
@@ -61,7 +64,7 @@ var weaponTypes = {
         numShots: 1,
         dmg: 1,
         range: 500,
-        speed: 0.3,
+        speed: 0.6,
         jitter: 0
     }
 };
@@ -134,14 +137,76 @@ var player = {
 var map = [];
 var enemies = [];
 
+function splort(x, y, r) {
+    for (var xx = x - r; xx < x + r; xx++) { for (var yy = y - r; yy < y + r; yy++) {
+        if (xx < 0 || xx >= MSZ || yy < 0 || yy >= MSZ) { continue; }
+        if ((xx - x) * (xx - x) + (yy - y) * (yy - y) <= r * r) {
+            map[yy][xx] = tileTypes.dirt;
+        }
+    }}
+}
+
+function canSplort(x, y, r) {
+    var connected = 0;
+    for (var xx = x - r; xx < x + r; xx++) { for (var yy = y - r; yy < y + r; yy++) {
+        if (xx < 1 || xx >= MSZ - 1 || yy < 1 || yy >= MSZ - 1) { return false; }
+        if ((xx - x) * (xx - x) + (yy - y) * (yy - y) <= r * r && !map[yy][xx].wall) {
+            connected++;
+        }
+    }}
+    return connected > 0 && connected < r * r / 4;
+}
+
+function splortRect(x, y, w, h) {
+    for (var xx = x; xx < x + w; xx++) { for (var yy = y; yy < y + h; yy++) {
+        map[yy][xx] = tileTypes.dirt;
+    }}
+}
+
+function canSplortRect(x, y, w, h) {
+    var connected = 0;
+    for (var xx = x; xx < x + w; xx++) { for (var yy = y; yy < y + h; yy++) {
+        if (xx < 1 || xx >= MSZ - 1 || yy < 1 || yy >= MSZ - 1) { return false; }
+        if (!map[yy][xx].wall) {
+            connected++;
+        }
+    }}
+    return connected > 0 && connected < 9;
+}
+
+function wallProportion() {
+    var wall = 0;
+    for (var y = 0; y < MSZ; y++) { for (var x = 0; x < MSZ; x++) {
+        if (map[y][x].wall) { wall++; }
+    }}
+    return wall * 1.0 / MSZ / MSZ;
+}
+
 function generateMap() {
     map = new Array(MSZ);
     for (var i = 0; i < MSZ; i++) {
         map[i] = new Array(MSZ);
     }
     for (var y = 0; y < MSZ; y++) { for (var x = 0; x < MSZ; x++) {
-        map[y][x] = (y == 0 || y == MSZ - 1 || x == 0 || x == MSZ - 1) ? tileTypes.dirtWall : tileTypes.dirt;
+        map[y][x] = tileTypes.dirtWall;
     }}
+    splort(MSZ / 2, MSZ / 2, 1);
+    while (wallProportion() > 0.7) {
+        var x = Math.floor(Math.random() * MSZ);
+        var y = Math.floor(Math.random() * MSZ);
+        var w = 5 + Math.ceil(Math.random() * 7);
+        var h = 2;
+        if (canSplortRect(x, y, w, h)) { splortRect(x, y, w, h); }
+        x = Math.floor(Math.random() * MSZ);
+        y = Math.floor(Math.random() * MSZ);
+        w = 2;
+        h = 5 + Math.ceil(Math.random() * 7);
+        if (canSplortRect(x, y, w, h)) { splortRect(x, y, w, h); }
+        x = Math.floor(Math.random() * MSZ);
+        y = Math.floor(Math.random() * MSZ);
+        var r = Math.ceil(Math.random() * 7);
+        if (canSplort(x, y, r)) { splort(x, y, r); }
+    }
     for (var i = 0; i < 30; i++) {
         var x = Math.random() * MSZ * TSZ;
         var y = Math.random() * MSZ * TSZ;
@@ -154,7 +219,8 @@ function generateMap() {
             x: x,
             y: y,
             reload: 0,
-            hp: type.hp
+            hp: type.hp,
+            noticed: false
         });
     }
 }
@@ -224,6 +290,44 @@ function update(ms) {
         }
         if (remove) {
             shots.splice(i, 1);
+            i--;
+        }
+    }
+    for (var i = 0; i < enemies.length; i++) {
+        var enemy = enemies[i];    
+        enemy.reload = Math.max(0, enemy.reload - ms);
+        var distSq = (enemy.x - player.x) * (enemy.x - player.x) + (enemy.y - player.y) * (enemy.y - player.y);
+        if (distSq < NOTICE_RANGE * NOTICE_RANGE) {
+            enemy.noticed = true;
+        }
+        if (distSq > PURSUE_RANGE * PURSUE_RANGE) {
+            enemy.noticed = false;
+        }
+        if (enemy.noticed) {
+            var towardsPlayer = Math.atan2(player.y - enemy.y, player.x - enemy.x);
+            if (distSq > FOLLOW_RANGE * FOLLOW_RANGE) {
+                // Move towards the player.
+                var newX = enemy.x + Math.cos(towardsPlayer) * enemy.type.speed * ms;
+                var newY = enemy.y + Math.sin(towardsPlayer) * enemy.type.speed * ms;
+                if (!wallAt(newX, newY) && !wallAt(newX + TSZ, newY) && !wallAt(newX, newY + TSZ) && !wallAt(newX + TSZ, newY + TSZ)) {
+                    enemy.x = newX;
+                    enemy.y = newY;
+                }
+            }
+            if (distSq < enemy.type.weapon.range * enemy.type.weapon.range && enemy.reload == 0) {
+                enemy.reload = enemy.type.  weapon.reload;
+                // Shoot at the player
+                shoot(
+                    enemy.type.weapon,
+                    enemy.x + TSZ / 2,
+                    enemy.y + TSZ / 2,
+                    towardsPlayer,
+                    false
+                );
+            }
+        }
+        if (enemy.hp <= 0) {
+            enemies.splice(i, 1);
             i--;
         }
     }
