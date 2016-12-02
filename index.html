@@ -17,13 +17,23 @@ var PURSUE_RANGE = 700;
 var FOLLOW_RANGE = 190;
 
 var weaponTypes = {
+    slowSixShooter: {
+        img: {x:0, y:80, w:14, h:7},
+        shot: {x:16, y:81, w:9, h:5},
+        reload: 2400,
+        numShots: 1,
+        dmg: 2,
+        range: 300,
+        speed: 0.6,
+        jitter: 0.05
+    },
     sixShooter: {
         img: {x:0, y:80, w:14, h:7},
         shot: {x:16, y:81, w:9, h:5},
         reload: 700,
         numShots: 1,
         dmg: 2,
-        range: 300,
+        range: 450,
         speed: 1.0,
         jitter: 0.05
     },
@@ -74,7 +84,7 @@ var enemyTypes = {
         img: {x: 3*TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
         speed: 0.2,
         hp: 3,
-        weapon: weaponTypes.sixShooter
+        weapon: weaponTypes.slowSixShooter
     },
     tumbleweed: {
         img: {x: 4*TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
@@ -83,13 +93,13 @@ var enemyTypes = {
         weapon: weaponTypes.shotgun
     },
     angryPony: {
-        img: {x: 4*TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
+        img: {x: 5*TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
         speed: 0.4,
         hp: 5,
         weapon: weaponTypes.sixShooter
     },
     train: {
-        img: {x: 5*TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
+        img: {x: 6*TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
         speed: 0.1,
         hp: 9,
         weapon: weaponTypes.gatlingGun
@@ -213,6 +223,9 @@ function generateMap() {
         if (wallAt(x, y) || wallAt(x + TSZ, y) || wallAt(x, y + TSZ) || wallAt(x + TSZ, y + TSZ)) {
             continue;
         }
+        if ((x - MSZ * TSZ / 2) * (x - MSZ * TSZ / 2) + (y - MSZ * TSZ / 2) * (y - MSZ * TSZ / 2) < 200 * 200) {
+            continue;
+        }
         var type = [enemyTypes.blackHat, enemyTypes.tumbleweed, enemyTypes.angryPony, enemyTypes.train][Math.floor(Math.random() * 4)];
         enemies.push({
             type: type,
@@ -220,7 +233,8 @@ function generateMap() {
             y: y,
             reload: 0,
             hp: type.hp,
-            noticed: false
+            noticed: false,
+            moveWait: 0
         });
     }
 }
@@ -249,22 +263,42 @@ function wallAt(x, y) {
     return x < 0 || x >= MSZ || y < 0 || y >= MSZ || map[y][x].wall;
 }
 
+function obstacleAt(x, y, self) {
+    if (self != player) {
+        if (x >= player.x && y >= player.y && x < player.x + TSZ && y < player.y + TSZ) {
+            return player;
+        }
+    }
+    for (var i = 0; i < enemies.length; i++) {
+        var enemy = enemies[i];
+        if (enemy == self) { continue; }
+        if (x >= enemy.x && y >= enemy.y && x < enemy.x + TSZ && y < enemy.y + TSZ) {
+            return enemy;
+        }
+    }
+    return null;
+}
+
+function unitObstacleAt(x, y, self) {
+    return obstacleAt(x, y, self) || obstacleAt(x + TSZ, y, self) || obstacleAt(x, y + TSZ, self) || obstacleAt(x + TSZ, y + TSZ, self);
+}
+
 function input(ms) {
-    if (down("W") && !wallAt(player.x, player.y - player.type.speed * ms)) {
+    if (down("W") && !wallAt(player.x + 5, player.y - player.type.speed * ms) && !wallAt(player.x + TSZ - 5, player.y - player.type.speed * ms) && unitObstacleAt(player.x, player.y - player.type.speed * ms, player) == null) {
         player.y -= player.type.speed * ms;
     }
-    if (down("S") && !wallAt(player.x, player.y + TSZ + player.type.speed * ms)) { 
+    if (down("S") && !wallAt(player.x + 5, player.y + TSZ + player.type.speed * ms) && !wallAt(player.x + TSZ - 5, player.y + TSZ + player.type.speed * ms) && unitObstacleAt(player.x, player.y + player.type.speed * ms, player) == null) { 
         player.y += player.type.speed * ms;
     }
-    if (down("A") && !wallAt(player.x - player.type.speed * ms, player.y)) { 
+    if (down("A") && !wallAt(player.x - player.type.speed * ms, player.y + 5) && !wallAt(player.x - player.type.speed * ms, player.y + TSZ - 5) && unitObstacleAt(player.x - player.type.speed * ms, player.y, player) == null) { 
         player.x -= player.type.speed * ms;
     }
-    if (down("D") && !wallAt(player.x + TSZ + player.type.speed * ms, player.y)) { 
+    if (down("D") && !wallAt(player.x + TSZ + player.type.speed * ms, player.y + 5) && !wallAt(player.x + TSZ + player.type.speed * ms, player.y + TSZ - 5) && unitObstacleAt(player.x + player.type.speed * ms, player.y, player) == null) { 
         player.x += player.type.speed * ms;
     }
-    if (click && player.reload == 0) {
+    if (mouseDown && player.reload == 0) {
         player.reload = player.weapon.reload;
-        var angle = Math.atan2(click.y - canvas.height / 2, click.x - canvas.width / 2);
+        var angle = Math.atan2(cursor.y - canvas.height / 2, cursor.x - canvas.width / 2);
         shoot(
             player.weapon,
             player.x + TSZ / 2 + Math.cos(angle) * player.weapon.img.w / 2,
@@ -288,6 +322,15 @@ function update(ms) {
         if (wallAt(shot.x, shot.y)) {
             remove = true;
         }
+        var hitUnit = obstacleAt(shot.x, shot.y, null);
+        if (hitUnit == player && !shot.byPlayer) {
+            hitUnit.hp -= shot.weapon.dmg;
+            remove = true;
+        }
+        if (hitUnit && hitUnit != player && shot.byPlayer) {
+            hitUnit.hp -= shot.weapon.dmg;
+            remove = true;
+        }
         if (remove) {
             shots.splice(i, 1);
             i--;
@@ -296,6 +339,7 @@ function update(ms) {
     for (var i = 0; i < enemies.length; i++) {
         var enemy = enemies[i];    
         enemy.reload = Math.max(0, enemy.reload - ms);
+        enemy.moveWait = Math.max(0, enemy.moveWait - ms);
         var distSq = (enemy.x - player.x) * (enemy.x - player.x) + (enemy.y - player.y) * (enemy.y - player.y);
         if (distSq < NOTICE_RANGE * NOTICE_RANGE) {
             enemy.noticed = true;
@@ -305,13 +349,15 @@ function update(ms) {
         }
         if (enemy.noticed) {
             var towardsPlayer = Math.atan2(player.y - enemy.y, player.x - enemy.x);
-            if (distSq > FOLLOW_RANGE * FOLLOW_RANGE) {
+            if (distSq > FOLLOW_RANGE * FOLLOW_RANGE && enemy.moveWait == 0) {
                 // Move towards the player.
                 var newX = enemy.x + Math.cos(towardsPlayer) * enemy.type.speed * ms;
                 var newY = enemy.y + Math.sin(towardsPlayer) * enemy.type.speed * ms;
-                if (!wallAt(newX, newY) && !wallAt(newX + TSZ, newY) && !wallAt(newX, newY + TSZ) && !wallAt(newX + TSZ, newY + TSZ)) {
+                if (!wallAt(newX, newY) && !wallAt(newX + TSZ, newY) && !wallAt(newX, newY + TSZ) && !wallAt(newX + TSZ, newY + TSZ) && unitObstacleAt(newX, newY, enemy) == null) {
                     enemy.x = newX;
                     enemy.y = newY;
+                } else {
+                    enemy.moveWait = 500;
                 }
             }
             if (distSq < enemy.type.weapon.range * enemy.type.weapon.range && enemy.reload == 0) {
@@ -368,6 +414,9 @@ function draw() {
     c.fillStyle = "white";
     c.fillRect(cursor.x - 10, cursor.y - 1, 20, 2);
     c.fillRect(cursor.x - 1, cursor.y - 10, 2, 20);
+    for (var i = 0; i < player.hp; i++) {
+        img({x:TSZ*2, y:TSZ*2, w:TSZ, h:TSZ}, 10 + 50 * i, 10);
+    }
 }
 
 
@@ -376,6 +425,7 @@ var canvas = document.getElementById("gameCanvas");
 var c = canvas.getContext("2d");
 var keys = {};
 var click = null;
+var mouseDown = false;
 var cursor = {x: 300, y: 300};
 
 // Listen for key presses.
@@ -399,11 +449,19 @@ function canvasClick(e) {
     click = { "x": e.offsetX, "y": e.offsetY };
 }
 
+function canvasMouseDown(e) {
+    mouseDown = true;
+}
+
+function canvasMouseUp(e) {
+    mouseDown = false;
+}
+
 function canvasMove(e) {
     cursor = { "x": e.offsetX, "y": e.offsetY };
 }
 
-$('#gameCanvas').click(canvasClick).mousemove(canvasMove);
+$('#gameCanvas').click(canvasClick).mousemove(canvasMove).mousedown(canvasMouseDown).mouseup(canvasMouseUp);
 
 // Set up game loop.
 var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;

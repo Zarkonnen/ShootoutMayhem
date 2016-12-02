@@ -1,9 +1,10 @@
 + respecting wall-ness
-- map gen
++ map gen
 + weapons
 + enemies
-- HP indicator
-- harm
++ HP indicator
++ harm
+- doodads
 - restart game
 - player select
 - sequence of levels
