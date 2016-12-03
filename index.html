@@ -30,7 +30,7 @@ var weaponTypes = {
     sixShooter: {
         img: {x:0, y:80, w:14, h:7},
         shot: {x:16, y:81, w:9, h:5},
-        reload: 700,
+        reload: 500,
         numShots: 1,
         dmg: 2,
         range: 450,
@@ -40,7 +40,7 @@ var weaponTypes = {
     rifle: {
         img: {x:0, y:90, w:32, h:10},
         shot: {x:16, y:81, w:9, h:5},
-        reload: 1500,
+        reload: 1000,
         numShots: 1,
         dmg: 3,
         range: 700,
@@ -50,7 +50,7 @@ var weaponTypes = {
     shotgun: {
         img: {x:0, y:102, w:27, h:10},
         shot: {x:16, y:81, w:9, h:5},
-        reload: 1800,
+        reload: 1500,
         numShots: 5,
         dmg: 1,
         range: 200,
@@ -344,14 +344,14 @@ function wallAt(x, y) {
 
 function obstacleAt(x, y, self) {
     if (self != player) {
-        if (x >= player.x && y >= player.y && x < player.x + TSZ && y < player.y + TSZ) {
+        if (x >= player.x + 5 && y >= player.y + 5 && x < player.x + TSZ - 5 && y < player.y + TSZ - 5) {
             return player;
         }
     }
     for (var i = 0; i < enemies.length; i++) {
         var enemy = enemies[i];
         if (enemy == self) { continue; }
-        if (x >= enemy.x && y >= enemy.y && x < enemy.x + TSZ && y < enemy.y + TSZ) {
+        if (x >= enemy.x + 5 && y >= enemy.y + 5 && x < enemy.x + TSZ - 5 && y < enemy.y + TSZ - 5) {
             return enemy;
         }
     }
@@ -359,7 +359,7 @@ function obstacleAt(x, y, self) {
 }
 
 function unitObstacleAt(x, y, self) {
-    return obstacleAt(x, y, self) || obstacleAt(x + TSZ, y, self) || obstacleAt(x, y + TSZ, self) || obstacleAt(x + TSZ, y + TSZ, self);
+    return obstacleAt(x + 5, y + 5, self) || obstacleAt(x + TSZ - 5, y + 5, self) || obstacleAt(x + 5, y + TSZ - 5, self) || obstacleAt(x + TSZ - 5, y + TSZ - 5, self);
 }
 
 function input(ms) {
