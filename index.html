@@ -19,7 +19,7 @@ var FOLLOW_RANGE = 190;
 var weaponTypes = {
     slowSixShooter: {
         img: {x:0, y:80, w:14, h:7},
-        shot: {x:16, y:81, w:9, h:5},
+        shot: {x:26, y:81, w:9, h:5},
         reload: 2400,
         numShots: 1,
         dmg: 2,
@@ -67,6 +67,16 @@ var weaponTypes = {
         speed: 1.2,
         jitter: 0.1
     },
+    slowGatlingGun: {
+        img: {x:41, y:81, w:37, h:11},
+        shot: {x:26, y:81, w:9, h:5},
+        reload: 200,
+        numShots: 1,
+        dmg: 1,
+        range: 500,
+        speed: 0.5,
+        jitter: 0.15
+    },
     abyssalProjector: {
         img: {x:41, y:94, w:30, h:11},
         shot: {x:74, y:96, w:5, h:5},
@@ -102,37 +112,44 @@ var enemyTypes = {
         img: {x: 6*TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
         speed: 0.1,
         hp: 9,
-        weapon: weaponTypes.sixShooter
+        weapon: weaponTypes.slowGatlingGun
     }
 };
 
 var tileTypes = {
     dirt: {
         img: {x: 0, y: 0, w: TSZ, h: TSZ},
+        dy: 0,
         wall: false
     },
     dirtWall: {
-        img: {x: 1*TSZ, y: 0, w: TSZ, h: TSZ},
+        img: {x: 7*TSZ, y: 0, w: TSZ, h: TSZ*2},
+        dy: -TSZ,
         wall: true
     },
     barrel: {
         img: {x: 2*TSZ, y: 0, w: TSZ, h: TSZ},
+        dy: 0,
         wall: false
     },
     fence: {
         img: {x: 3*TSZ, y: 0, w: TSZ, h: TSZ},
+        dy: 0,
         wall: false
     },
     skull: {
         img: {x: 4*TSZ, y: 0, w: TSZ, h: TSZ},
+        dy: 0,
         wall: false
     },
     cactus: {
         img: {x: 5*TSZ, y: 0, w: TSZ, h: TSZ},
+        dy: 0,
         wall: false
     },
     flower: {
         img: {x: 6*TSZ, y: 0, w: TSZ, h: TSZ},
+        dy: 0,
         wall: false
     }
 };
@@ -173,7 +190,7 @@ var player = null;
 function createPlayer(type) {
     player = {
         type: type,
-        weapon: weaponTypes.sixShooter,
+        weapon: weaponTypes.shotgun,
         reload: 0,
         x: MSZ * TSZ / 2,
         y: MSZ * TSZ / 2,
@@ -286,18 +303,37 @@ function generateMap() {
 
 var shots = [];
 
+function canHit(weapon, shooter, sx, sy, tx, ty) {
+    var angle = Math.atan2(ty - sy, tx - sx);
+    var c = Math.cos(angle);
+    var s = Math.sin(angle);
+    var x = sx;
+    var y = sy;
+    for (var i = 0; i < weapon.range; i += 5) {
+        x += c * 5;
+        y += c * 5;
+        if (wallAt(x, y)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 function shoot(weapon, x, y, angle, byPlayer) {
-    shots.push({
-        weapon: weapon,
-        srcX: x,
-        srcY: y,
-        x: x,
-        y: y,
-        dx: Math.cos(angle) * weapon.speed,
-        dy: Math.sin(angle) * weapon.speed,
-        angle: angle,
-        byPlayer: byPlayer
-    });
+    for (var i = 0; i < weapon.numShots; i++) {
+        var angle2 = angle + (Math.random() * 2 - 1) * weapon.jitter;
+        shots.push({
+            weapon: weapon,
+            srcX: x,
+            srcY: y,
+            x: x,
+            y: y,
+            dx: Math.cos(angle2) * weapon.speed,
+            dy: Math.sin(angle2) * weapon.speed,
+            angle: angle2,
+            byPlayer: byPlayer
+        });
+    }
 }
 
 function wallAt(x, y) {
@@ -421,8 +457,8 @@ function update(ms) {
                     enemy.moveWait = 500;
                 }
             }
-            if (distSq < enemy.type.weapon.range * enemy.type.weapon.range && enemy.reload == 0) {
-                enemy.reload = enemy.type.  weapon.reload;
+            if (distSq < enemy.type.weapon.range * enemy.type.weapon.range && enemy.reload == 0 && canHit(enemy.type.weapon, enemy, enemy.x + TSZ / 2, enemy.y + TSZ / 2, player.x + TSZ / 2, player.y + TSZ / 2)) {
+                enemy.reload = enemy.type.weapon.reload;
                 // Shoot at the player
                 shoot(
                     enemy.type.weapon,
@@ -478,7 +514,9 @@ function draw() {
     c.fillRect(0, 0, canvas.width, canvas.height);
     c.translate(canvas.width / 2 - player.x - TSZ / 2, canvas.height / 2 - player.y - TSZ / 2);
     for (var y = 0; y < MSZ; y++) { for (var x = 0; x < MSZ; x++) {
-        img(map[y][x].img, x * TSZ, y * TSZ);
+        if (map[y][x].dy == 0) {
+            img(map[y][x].img, x * TSZ, y * TSZ);
+        }
     }}
     for (var i = 0; i < enemies.length; i++) {
         var enemy = enemies[i];
@@ -498,9 +536,22 @@ function draw() {
     c.rotate(weaponAngle);
     img(player.weapon.img, 0, 0);
     c.resetTransform(); 
+    c.translate(canvas.width / 2 - player.x - TSZ / 2, canvas.height / 2 - player.y - TSZ / 2);
+    for (var y = 0; y < MSZ; y++) { for (var x = 0; x < MSZ; x++) {
+        if (map[y][x].dy != 0) {
+            img(map[y][x].img, x * TSZ, y * TSZ + map[y][x].dy);
+        }
+    }}
+    c.resetTransform(); 
     c.fillStyle = "white";
     c.fillRect(cursor.x - 10, cursor.y - 1, 20, 2);
     c.fillRect(cursor.x - 1, cursor.y - 10, 2, 20);
+    if (player.reload == 0) {
+        c.fillRect(cursor.x - 5, cursor.y - 5, 10, 2);
+        c.fillRect(cursor.x - 5, cursor.y - 5, 2, 10);
+        c.fillRect(cursor.x + 3, cursor.y - 5, 2, 10);
+        c.fillRect(cursor.x - 5, cursor.y + 3, 10, 2);
+    }
     for (var i = 0; i < player.hp; i++) {
         img({x:TSZ*2, y:TSZ*2, w:TSZ, h:TSZ}, 10 + 50 * i, 10);
     }
