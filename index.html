@@ -184,21 +184,21 @@ var enemyTypes = {
         speed: 0.2,
         hp: 3,
         weapon: weaponTypes.slowSixShooter,
-        dropP: 0.1
+        dropP: 0.3
     },
     tumbleweed: {
         img: {x: 4*TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
         speed: 0.4,
         hp: 1,
         weapon: weaponTypes.slowSixShooter,
-        dropP: 0.2
+        dropP: 0.5
     },
     angryPony: {
         img: {x: 5*TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
         speed: 0.4,
         hp: 5,
         weapon: weaponTypes.slowSixShooter,
-        dropP: 0.3
+        dropP: 0.8
     },
     train: {
         img: {x: 6*TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
@@ -250,30 +250,33 @@ var tileTypes = {
 var playerTypes = [
     {
         name: "Taquito James",
-        desc0: "Ability: Rage",
-        desc1: "More XP",
+        desc1: "Ability: Rage",
+        desc0: "More XP",
         img: {x: 0, y: 1*TSZ, w: TSZ, h: TSZ},
         large: {x: 0, y:160, w:160, h:160},
         hp: 6,
-        speed: 0.25
+        speed: 0.25,
+        xpMult: 2
     },
     {
         name: "El Gato",
-        desc0: "Ability: Leap",
-        desc1: "More HP",
+        desc1: "Ability: Leap",
+        desc0: "More HP",
         img: {x: TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
         large: {x: 160, y:160, w:160, h:160},
         hp: 9,
-        speed: 0.25
+        speed: 0.25,
+        xpMult: 1
     },
     {
         name: "S.P.U.R",
-        desc0: "Ability: Whirl",
-        desc1: "Faster",
+        desc1: "Ability: Whirl",
+        desc0: "Faster",
         img: {x: 2*TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
         large: {x: 320, y:160, w:160, h:160},
         hp: 6,
-        speed: 0.4
+        speed: 0.4,
+        xpMult: 1
     }
 ];
 
@@ -603,7 +606,7 @@ function update(ms) {
                     player.hp = Math.min(player.type.hp, player.hp + 1);
                     break;
                 case "xp":
-                    player.xp++;
+                    player.xp = player.xp + player.type.xpMult;
                     break;
                 case "ammo":
                     player.ammo[drop.ammoType.id] = Math.min(drop.ammoType.max, player.ammo[drop.ammoType.id] + drop.ammoType.pickup);
@@ -645,6 +648,19 @@ function update(ms) {
         if (hitUnit && (hitUnit == player) != shot.byPlayer) {
             if (shot.weapon.blastRadius == 0) {
                 hitUnit.hp -= shot.weapon.dmg;
+                for (var j = 0; j < shot.weapon.dmg * 4; j++) {
+                    var a = Math.random() * Math.PI * 2;
+                    var spd = 0.05 + Math.random() * 0.3;
+                    particles.push({
+                        color: "red",
+                        x: shot.x,
+                        y: shot.y,
+                        dx: Math.cos(a) * spd,
+                        dy: Math.sin(a) * spd,
+                        r: 2 + Math.floor(Math.random() * 2),
+                        life: 50 + Math.floor(Math.random() * 200)
+                    });
+                }
             }
             remove = true;
         }
@@ -718,9 +734,22 @@ function update(ms) {
             }
         }
         if (enemy.hp <= 0) {
-            //if (Math.random() < enemy.type.dropP) {
+            if (Math.random() < enemy.type.dropP) {
                 doDrop(enemy.x + TSZ / 2, enemy.y + TSZ / 2);
-            //}
+            }
+            for (var j = 0; j < enemy.type.hp * 4; j++) {
+                var a = Math.random() * Math.PI * 2;
+                var spd = 0.05 + Math.random() * 0.3;
+                particles.push({
+                    color: "red",
+                    x: shot.x,
+                    y: shot.y,
+                    dx: Math.cos(a) * spd,
+                    dy: Math.sin(a) * spd,
+                    r: 2 + Math.floor(Math.random() * 2),
+                    life: 100 + Math.floor(Math.random() * 300)
+                });
+            }
             enemies.splice(i, 1);
             i--;
         }
@@ -828,8 +857,8 @@ function draw() {
         c.fillRect(cursor.x + 3, cursor.y - 5, 2, 10);
         c.fillRect(cursor.x - 5, cursor.y + 3, 10, 2);
     }
-    for (var i = 0; i < player.hp; i++) {
-        img({x:TSZ*2, y:TSZ*2, w:TSZ, h:TSZ}, 10 + 50 * i, 10);
+    for (var i = 0; i < player.type.hp; i++) {
+        img(i < player.hp ? {x:TSZ*2, y:TSZ*2, w:TSZ, h:TSZ} : {x:TSZ*3, y:TSZ*2, w:TSZ, h:TSZ}, 10 + 50 * i, 10);
     }
     var ammos = ["bullets", "grenades", "energy"];
     for (var i = 0; i < ammos.length; i++) {
