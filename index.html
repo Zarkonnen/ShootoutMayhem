@@ -25,7 +25,10 @@ var weaponTypes = {
         dmg: 2,
         range: 300,
         speed: 0.4,
-        jitter: 0.05
+        jitter: 0.05,
+        blastRadius: 0,
+        bounce: false,
+        fuze: 0
     },
     sixShooter: {
         img: {x:0, y:80, w:14, h:7},
@@ -35,7 +38,10 @@ var weaponTypes = {
         dmg: 2,
         range: 450,
         speed: 1.0,
-        jitter: 0.05
+        jitter: 0.05,
+        blastRadius: 0,
+        bounce: false,
+        fuze: 0
     },
     rifle: {
         img: {x:0, y:90, w:32, h:10},
@@ -45,7 +51,10 @@ var weaponTypes = {
         dmg: 3,
         range: 700,
         speed: 1.6,
-        jitter: 0.01
+        jitter: 0.01,
+        blastRadius: 0,
+        bounce: false,
+        fuze: 0
     },
     shotgun: {
         img: {x:0, y:102, w:27, h:10},
@@ -55,7 +64,10 @@ var weaponTypes = {
         dmg: 1,
         range: 200,
         speed: 0.8,
-        jitter: 0.2
+        jitter: 0.2,
+        blastRadius: 0,
+        bounce: false,
+        fuze: 0
     },
     gatlingGun: {
         img: {x:41, y:81, w:37, h:11},
@@ -67,6 +79,19 @@ var weaponTypes = {
         speed: 1.2,
         jitter: 0.1
     },
+    grenades: {
+        img: {x:0, y:0, w:0, h:0},
+        shot: {x:41, y:107, w:9, h:9},
+        reload: 1000,
+        numShots: 1,
+        dmg: 6,
+        range: 300,
+        speed: 0.2,
+        jitter: 0.05,
+        blastRadius: 50,
+        bounce: true,
+        fuze: 1300
+    },
     slowGatlingGun: {
         img: {x:41, y:81, w:37, h:11},
         shot: {x:26, y:81, w:9, h:5},
@@ -75,7 +100,10 @@ var weaponTypes = {
         dmg: 1,
         range: 500,
         speed: 0.5,
-        jitter: 0.15
+        jitter: 0.15,
+        blastRadius: 0,
+        bounce: false,
+        fuze: 0
     },
     abyssalProjector: {
         img: {x:41, y:94, w:30, h:11},
@@ -85,7 +113,10 @@ var weaponTypes = {
         dmg: 1,
         range: 500,
         speed: 0.6,
-        jitter: 0
+        jitter: 0,
+        blastRadius: 0,
+        bounce: false,
+        fuze: 0
     }
 };
 
@@ -190,7 +221,7 @@ var player = null;
 function createPlayer(type) {
     player = {
         type: type,
-        weapon: weaponTypes.shotgun,
+        weapon: weaponTypes.grenades,
         reload: 0,
         x: MSZ * TSZ / 2,
         y: MSZ * TSZ / 2,
@@ -302,6 +333,7 @@ function generateMap() {
 }
 
 var shots = [];
+var particles = [];
 
 function canHit(weapon, shooter, sx, sy, tx, ty) {
     var angle = Math.atan2(ty - sy, tx - sx);
@@ -331,7 +363,8 @@ function shoot(weapon, x, y, angle, byPlayer) {
             dx: Math.cos(angle2) * weapon.speed,
             dy: Math.sin(angle2) * weapon.speed,
             angle: angle2,
-            byPlayer: byPlayer
+            byPlayer: byPlayer,
+            fuze: weapon.fuze
         });
     }
 }
@@ -406,27 +439,74 @@ function update(ms) {
         return;
     }
     player.reload = Math.max(player.reload - ms, 0);
+    for (var i = 0; i < particles.length; i++) {
+        var particle = particles[i];
+        particle.x += particle.dx * ms;
+        particle.y += particle.dy * ms;
+        particle.life -= ms;
+        if (particle.life <= 0) {
+            particles.splice(i, 1);
+            i--;
+        }
+    }
     for (var i = 0; i < shots.length; i++) {
         var remove = false;
         var shot = shots[i];
         shot.x += shot.dx * ms;
         shot.y += shot.dy * ms;
-        if ((shot.x - shot.srcX) * (shot.x - shot.srcX) + (shot.y - shot.srcY) * (shot.y - shot.srcY) > shot.weapon.range * shot.weapon.range) {
-            remove = true;
+        if (shot.weapon.fuze) {
+            shot.fuze -= ms;
+            if (shot.fuze <= 0) { remove = true; }
+        } else {
+            if ((shot.x - shot.srcX) * (shot.x - shot.srcX) + (shot.y - shot.srcY) * (shot.y - shot.srcY) > shot.weapon.range * shot.weapon.range) {
+                remove = true;
+            }
         }
         if (wallAt(shot.x, shot.y)) {
-            remove = true;
+            if (shot.weapon.bounce) {
+                if (wallAt(shot.x - shot.dx * ms, shot.y)) {
+                    shot.dy *= -1;
+                } else {
+                    shot.dx *= -1;
+                }
+            } else {
+                remove = true;
+            }
         }
         var hitUnit = obstacleAt(shot.x, shot.y, null);
-        if (hitUnit == player && !shot.byPlayer) {
-            hitUnit.hp -= shot.weapon.dmg;
-            remove = true;
-        }
-        if (hitUnit && hitUnit != player && shot.byPlayer) {
-            hitUnit.hp -= shot.weapon.dmg;
+        if (hitUnit && (hitUnit == player) != shot.byPlayer) {
+            if (shot.weapon.blastRadius == 0) {
+                hitUnit.hp -= shot.weapon.dmg;
+            }
             remove = true;
         }
         if (remove) {
+            if (shot.weapon.blastRadius) {
+                particles.push({
+                    color: "white",
+                    x: shot.x,
+                    y: shot.y,
+                    dx: 0,
+                    dy: 0,
+                    r: shot.weapon.blastRadius,
+                    life: 200
+                });
+                if (shot.byPlayer) {
+                    for (var j = 0; j < enemies.length; j++) {
+                        var enemy = enemies[j
+                        ];
+                        var dsq = (enemy.x + TSZ / 2 - shot.x) * (enemy.x + TSZ / 2 - shot.x) + (enemy.y + TSZ / 2 - shot.y) * (enemy.y + TSZ / 2 - shot.y);
+                        if (dsq < shot.weapon.blastRadius * shot.weapon.blastRadius) {
+                            enemy.hp -= shot.weapon.dmg;
+                        }
+                    }
+                } else {
+                    var dsq = (player.x - shot.x) * (player.x - shot.x) + (player.y - shot.y) * (player.y - shot.y);
+                    if (dsq < shot.weapon.blastRadius * shot.weapon.blastRadius) {
+                        player.hp -= shot.weapon.dmg;
+                    }
+                }
+            }
             shots.splice(i, 1);
             i--;
         }
@@ -537,6 +617,14 @@ function draw() {
     img(player.weapon.img, 0, 0);
     c.resetTransform(); 
     c.translate(canvas.width / 2 - player.x - TSZ / 2, canvas.height / 2 - player.y - TSZ / 2);
+    for (var i = 0; i < particles.length; i++) {
+        var particle = particles[i];
+        c.fillStyle = particle.color;
+        //c.fillRect(particle.x - particle.r, particle.y - particle.r, particle.r * 2, particle.r * 2);
+        c.beginPath();
+        c.arc(particle.x, particle.y, particle.r, 0, Math.PI * 2);
+        c.fill();
+    }
     for (var y = 0; y < MSZ; y++) { for (var x = 0; x < MSZ; x++) {
         if (map[y][x].dy != 0) {
             img(map[y][x].img, x * TSZ, y * TSZ + map[y][x].dy);

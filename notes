@@ -2,6 +2,7 @@
 + inaccuracy
 + multishot
 - grenades
+- ammo use
 - bowie knife?
 - barrels block shots?
 - HP, XP, ammo and weapon drops
@@ -9,6 +10,10 @@
 - enemy mix
 - audio
 - abilities
+- Tomb marker
+- Broken wheel
+- Dry well
+- Rocks
 
 
 Ability ideas:
@@ -20,6 +25,7 @@ Ability ideas:
 - spinning 360 degree melee attack
 - leap ("teleport")
 - icy trail
+- Time freeze
 
 El Gato: 9 HP, can leap
 Taquito James: Rage meter, faster levelling
