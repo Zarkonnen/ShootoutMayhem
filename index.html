@@ -128,11 +128,14 @@ var weaponTypes = {
         range: 500,
         speed: 1.2,
         jitter: 0.1,
+        blastRadius: 0,
+        bounce: false,
+        fuze: 0,
         ammo: "bullets"
     },
     grenades: {
         name: "Grenades",
-        img: {x:0, y:0, w:0, h:0},
+        img: {x:41, y:107, w:9, h:9},
         shot: {x:41, y:107, w:9, h:9},
         reload: 1000,
         numShots: 1,
@@ -176,7 +179,7 @@ var weaponTypes = {
     }
 };
 
-var droppableWeapons = [weaponTypes.sixShooter, weaponTypes.rifle, weaponTypes.shotgun, weaponTypes.bowieKnife, weaponTypes.gatlingGun, weaponTypes.abyssalProjector];
+var droppableWeapons = [weaponTypes.rifle, weaponTypes.shotgun, weaponTypes.bowieKnife, weaponTypes.gatlingGun, weaponTypes.abyssalProjector, weaponTypes.grenades];
 
 var enemyTypes = {
     blackHat: {
@@ -328,7 +331,7 @@ var gunTakeDelay = 0;
 function createPlayer(type) {
     player = {
         type: type,
-        weapon: weaponTypes.sixShooter,
+        weapon: weaponTypes.gatlingGun,
         offHand: null,
         ammo: {
             bullets: 80,
@@ -472,7 +475,7 @@ function doDrop(x, y) {
             });
             break;
         case 4: case 5:
-            var ammoType = [ammoTypes.bullets, ammoTypes.grenades, ammoTypes.energy][Math.floor(Math.random() * 3)];
+            var ammoType = [ammoTypes.bullets, ammoType.bullets, ammoTypes.grenades, ammoTypes.energy][Math.floor(Math.random() * 4)];
             drops.push({
                 type: "ammo",
                 img: ammoType.drop,
@@ -623,6 +626,10 @@ function input(ms) {
 
 function update(ms) {
     if (playerSelect) {
+        return;
+    }
+    if (player.hp <= 0) {
+        playerSelect = true;
         return;
     }
     gunSwitchDelay = Math.max(gunSwitchDelay - ms, 0);

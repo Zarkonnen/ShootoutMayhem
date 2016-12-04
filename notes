@@ -1,25 +1,14 @@
-- death and restart game
-- hooves
++ death and restart game
 - sequence of levels
 - enemy mix per level
 - audio
 - abilities
-- Tomb marker
-- Broken wheel
-- Dry well
-- Rocks
 
 
 Ability ideas:
-- each missed shot fills up a rage meter
-- temp invisibility
 - passive: faster shots
 - gain HP from multikills
 - gain HP at level start
-- spinning 360 degree melee attack
-- leap ("teleport")
-- icy trail
-- Time freeze
 
 El Gato: 9 HP, can leap
 Taquito James: Rage meter, faster levelling
