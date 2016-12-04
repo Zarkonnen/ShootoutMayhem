@@ -118,6 +118,20 @@ var weaponTypes = {
         fuze: 0,
         ammo: null
     },
+    horseshoe: {
+        img: {x:30, y:101, w:8, h:9},
+        shot: {x:30, y:101, w:8, h:9},
+        reload: 2000,
+        numShots: 1,
+        dmg: 3,
+        range: 70,
+        speed: 1,
+        jitter: 0.2,
+        blastRadius: 0,
+        bounce: false,
+        fuze: 0,
+        ammo: null
+    },
     gatlingGun: {
         name: "Gatling Gun",
         img: {x:41, y:81, w:37, h:11},
@@ -198,9 +212,9 @@ var enemyTypes = {
     },
     angryPony: {
         img: {x: 5*TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
-        speed: 0.4,
-        hp: 5,
-        weapon: weaponTypes.slowSixShooter,
+        speed: 0.3,
+        hp: 3,
+        weapon: weaponTypes.horseshoe,
         dropP: 0.8
     },
     train: {
@@ -273,7 +287,7 @@ var tileTypes = {
     barrel: {
         img: {x: 2*TSZ, y: 0, w: TSZ, h: TSZ},
         dy: 0,
-        wall: false
+        wall: true
     },
     fence: {
         img: {x: 3*TSZ, y: 0, w: TSZ, h: TSZ},
@@ -288,7 +302,7 @@ var tileTypes = {
     cactus: {
         img: {x: 5*TSZ, y: 0, w: TSZ, h: TSZ},
         dy: 0,
-        wall: false
+        wall: true
     },
     flower: {
         img: {x: 6*TSZ, y: 0, w: TSZ, h: TSZ},
@@ -308,7 +322,7 @@ var tileTypes = {
     well: {
         img: {x: 10*TSZ, y: 0, w: TSZ, h: TSZ},
         dy: 0,
-        wall: false
+        wall: true
     },
     stone: {
         img: {x: 11*TSZ, y: 0, w: TSZ, h: TSZ},
@@ -456,11 +470,26 @@ function generateMap() {
         var r = Math.ceil(Math.random() * 7);
         if (canSplort(x, y, r)) { splort(x, y, r); }
     }
+    // Barrels, cacti, wells
+    for (var i = 0; i < MSZ * MSZ / 60; i++) {
+        var x = Math.floor(Math.random() * MSZ);
+        var y = Math.floor(Math.random() * MSZ);
+        if (!map[y][x].wall) {
+            var nearWall = false;
+            for (var dy = -1; dy < 2; dy++) { for (var dx = -1; dx < 2; dx++) {
+                nearWall |= map[y + dy][x + dx].wall;
+            }}
+            if (!nearWall) {
+                map[y][x] = [tileTypes.barrel, tileTypes.cactus, tileTypes.well][Math.floor(Math.random() * 3)];
+            }
+        }
+    }
+    // Terrain features
     for (var i = 0; i < MSZ * MSZ / 20; i++) {
         var x = Math.floor(Math.random() * MSZ);
         var y = Math.floor(Math.random() * MSZ);
         if (!map[y][x].wall) {
-            map[y][x] = [tileTypes.barrel, tileTypes.fence, tileTypes.skull, tileTypes.cactus, tileTypes.flower, tileTypes.cross, tileTypes.wheel, tileTypes.well, tileTypes.stone][Math.floor(Math.random() * 9)];
+            map[y][x] = [tileTypes.fence, tileTypes.skull, tileTypes.flower, tileTypes.cross, tileTypes.wheel, tileTypes.stone][Math.floor(Math.random() * 6)];
         }
     }
     var placedWeapons = 0;
@@ -554,7 +583,7 @@ function canHit(weapon, shooter, sx, sy, tx, ty) {
     var y = sy;
     for (var i = 0; i < weapon.range; i += 5) {
         x += c * 5;
-        y += c * 5;
+        y += s * 5;
         if (wallAt(x, y)) {
             return false;
         }
@@ -835,7 +864,8 @@ function update(ms) {
         }
         if (enemy.noticed) {
             var towardsPlayer = Math.atan2(player.y - enemy.y, player.x - enemy.x);
-            if (distSq > FOLLOW_RANGE * FOLLOW_RANGE && enemy.moveWait == 0) {
+            var followRange = enemy.type.weapon.range * 0.6;
+            if (distSq > followRange * followRange && enemy.moveWait == 0) {
                 // Move towards the player.
                 var newX = enemy.x + Math.cos(towardsPlayer) * enemy.type.speed * ms;
                 var newY = enemy.y + Math.sin(towardsPlayer) * enemy.type.speed * ms;
