@@ -431,6 +431,8 @@ function generateMap() {
     drops = [];
     droppedWeapons = [];
     shots = [];
+    player.x = MSZ * TSZ / 2;
+    player.y = MSZ * TSZ / 2;
     for (var i = 0; i < MSZ; i++) {
         map[i] = new Array(MSZ);
     }
@@ -511,7 +513,7 @@ var drops = [];
 var droppedWeapons = [];
 
 function doDrop(x, y) {
-    switch (Math.floor(Math.random() * 6)) {
+    switch (Math.floor(Math.random() * 7)) {
         case 0: case 1:
             drops.push({
                 type: "hp",
@@ -530,7 +532,7 @@ function doDrop(x, y) {
                 life: 5000
             });
             break;
-        case 4: case 5:
+        case 4: case 5: case 6:
             var ammoType = [ammoTypes.bullets, ammoTypes.bullets, ammoTypes.grenades, ammoTypes.energy][Math.floor(Math.random() * 4)];
             drops.push({
                 type: "ammo",
@@ -539,14 +541,6 @@ function doDrop(x, y) {
                 x: x,
                 y: y,
                 life: 5000
-            });
-            break;
-        case 6:
-            var weaponType = droppableWeapons[Math.floor(Math.random() * droppableWeapons.length)];
-            droppedWeapons.push({
-                type: weaponType,
-                x: x,
-                y: y
             });
             break;
     }
