@@ -210,8 +210,28 @@ var enemyTypes = {
 };
 
 var tileTypes = {
-    dirt: {
+    dirt0: {
         img: {x: 0, y: 0, w: TSZ, h: TSZ},
+        dy: 0,
+        wall: false
+    },
+    dirt1: {
+        img: {x: 12*TSZ, y: 0, w: TSZ, h: TSZ},
+        dy: 0,
+        wall: false
+    },
+    dirt2: {
+        img: {x: 13*TSZ, y: 0, w: TSZ, h: TSZ},
+        dy: 0,
+        wall: false
+    },
+    dirt3: {
+        img: {x: 14*TSZ, y: 0, w: TSZ, h: TSZ},
+        dy: 0,
+        wall: false
+    },
+    dirt4: {
+        img: {x: 15*TSZ, y: 0, w: TSZ, h: TSZ},
         dy: 0,
         wall: false
     },
@@ -242,6 +262,26 @@ var tileTypes = {
     },
     flower: {
         img: {x: 6*TSZ, y: 0, w: TSZ, h: TSZ},
+        dy: 0,
+        wall: false
+    },
+    cross: {
+        img: {x: 8*TSZ, y: 0, w: TSZ, h: TSZ},
+        dy: 0,
+        wall: false
+    },
+    wheel: {
+        img: {x: 9*TSZ, y: 0, w: TSZ, h: TSZ},
+        dy: 0,
+        wall: false
+    },
+    well: {
+        img: {x: 10*TSZ, y: 0, w: TSZ, h: TSZ},
+        dy: 0,
+        wall: false
+    },
+    stone: {
+        img: {x: 11*TSZ, y: 0, w: TSZ, h: TSZ},
         dy: 0,
         wall: false
     }
@@ -310,7 +350,7 @@ function splort(x, y, r) {
     for (var xx = x - r; xx < x + r; xx++) { for (var yy = y - r; yy < y + r; yy++) {
         if (xx < 0 || xx >= MSZ || yy < 0 || yy >= MSZ) { continue; }
         if ((xx - x) * (xx - x) + (yy - y) * (yy - y) <= r * r) {
-            map[yy][xx] = tileTypes.dirt;
+            map[yy][xx] = tileTypes["dirt" + Math.floor(Math.random() * 5)];
         }
     }}
 }
@@ -328,7 +368,7 @@ function canSplort(x, y, r) {
 
 function splortRect(x, y, w, h) {
     for (var xx = x; xx < x + w; xx++) { for (var yy = y; yy < y + h; yy++) {
-        map[yy][xx] = tileTypes.dirt;
+        map[yy][xx] = tileTypes["dirt" + Math.floor(Math.random() * 5)];
     }}
 }
 
@@ -380,7 +420,7 @@ function generateMap() {
         var x = Math.floor(Math.random() * MSZ);
         var y = Math.floor(Math.random() * MSZ);
         if (!map[y][x].wall) {
-            map[y][x] = [tileTypes.barrel, tileTypes.fence, tileTypes.skull, tileTypes.cactus, tileTypes.flower][Math.floor(Math.random() * 5)];
+            map[y][x] = [tileTypes.barrel, tileTypes.fence, tileTypes.skull, tileTypes.cactus, tileTypes.flower, tileTypes.cross, tileTypes.wheel, tileTypes.well, tileTypes.stone][Math.floor(Math.random() * 9)];
         }
     }
     while (enemies.length < 16) {
