@@ -16,6 +16,30 @@ var NOTICE_RANGE = 550;
 var PURSUE_RANGE = 700;
 var FOLLOW_RANGE = 190;
 
+var ammoTypes = {
+    bullets: {
+        id: "bullets",
+        name: "Bullets",
+        drop: {x:3, y:123, w:12, h:14},
+        indicator: {x:1, y:141, w:18, h:8},
+        max: 200
+    },
+    grenades: {
+        id: "grenades",
+        name: "Grenades",
+        drop: {x:3, y:123, w:12, h:14},
+        indicator: {x:1, y:149, w:8, h:8},
+        max: 10
+    },
+    energy: {
+        id: "energy",
+        name: "Abyssal Energy",
+        drop: {x:3, y:123, w:12, h:14},
+        indicator: {x:11, y:149, w:8, h:8},
+        max: 1000
+    }
+};
+
 var weaponTypes = {
     slowSixShooter: {
         img: {x:0, y:80, w:14, h:7},
@@ -28,7 +52,8 @@ var weaponTypes = {
         jitter: 0.05,
         blastRadius: 0,
         bounce: false,
-        fuze: 0
+        fuze: 0,
+        ammo: null
     },
     sixShooter: {
         img: {x:0, y:80, w:14, h:7},
@@ -41,7 +66,8 @@ var weaponTypes = {
         jitter: 0.05,
         blastRadius: 0,
         bounce: false,
-        fuze: 0
+        fuze: 0,
+        ammo: "bullets"
     },
     rifle: {
         img: {x:0, y:90, w:32, h:10},
@@ -54,7 +80,8 @@ var weaponTypes = {
         jitter: 0.01,
         blastRadius: 0,
         bounce: false,
-        fuze: 0
+        fuze: 0,
+        ammo: "bullets"
     },
     shotgun: {
         img: {x:0, y:102, w:27, h:10},
@@ -67,7 +94,22 @@ var weaponTypes = {
         jitter: 0.2,
         blastRadius: 0,
         bounce: false,
-        fuze: 0
+        fuze: 0,
+        ammo: "bullets"
+    },
+    bowieKnife: {
+        img: {x:54, y:107, w:17, h:6},
+        shot: {x:54, y:107, w:17, h:6},
+        reload: 500,
+        numShots: 1,
+        dmg: 8,
+        range: 40,
+        speed: 2,
+        jitter: 0,
+        blastRadius: 0,
+        bounce: false,
+        fuze: 0,
+        ammo: null
     },
     gatlingGun: {
         img: {x:41, y:81, w:37, h:11},
@@ -77,7 +119,8 @@ var weaponTypes = {
         dmg: 2,
         range: 500,
         speed: 1.2,
-        jitter: 0.1
+        jitter: 0.1,
+        ammo: "bullets"
     },
     grenades: {
         img: {x:0, y:0, w:0, h:0},
@@ -90,7 +133,8 @@ var weaponTypes = {
         jitter: 0.05,
         blastRadius: 50,
         bounce: true,
-        fuze: 1300
+        fuze: 1300,
+        ammo: "grenades"
     },
     slowGatlingGun: {
         img: {x:41, y:81, w:37, h:11},
@@ -103,7 +147,8 @@ var weaponTypes = {
         jitter: 0.15,
         blastRadius: 0,
         bounce: false,
-        fuze: 0
+        fuze: 0,
+        ammo: null
     },
     abyssalProjector: {
         img: {x:41, y:94, w:30, h:11},
@@ -116,7 +161,8 @@ var weaponTypes = {
         jitter: 0,
         blastRadius: 0,
         bounce: false,
-        fuze: 0
+        fuze: 0,
+        ammo: "energy"
     }
 };
 
@@ -221,7 +267,13 @@ var player = null;
 function createPlayer(type) {
     player = {
         type: type,
-        weapon: weaponTypes.grenades,
+        weapon: weaponTypes.sixShooter,
+        ammo: {
+            bullets: 80,
+            grenades: 0,
+            energy: 0
+        },
+        xp: 6,
         reload: 0,
         x: MSZ * TSZ / 2,
         y: MSZ * TSZ / 2,
@@ -421,13 +473,16 @@ function input(ms) {
     if (down("D") && !wallAt(player.x + TSZ + player.type.speed * ms, player.y + 5) && !wallAt(player.x + TSZ + player.type.speed * ms, player.y + TSZ - 5) && unitObstacleAt(player.x + player.type.speed * ms, player.y, player) == null) { 
         player.x += player.type.speed * ms;
     }
-    if (mouseDown && player.reload == 0) {
+    if (mouseDown && player.reload == 0 && (player.weapon.ammo == null || player.ammo[player.weapon.ammo])) {
         player.reload = player.weapon.reload;
+        if (player.weapon.ammo) {
+            player.ammo[player.weapon.ammo]--;
+        }
         var angle = Math.atan2(cursor.y - canvas.height / 2, cursor.x - canvas.width / 2);
         shoot(
             player.weapon,
-            player.x + TSZ / 2 + Math.cos(angle) * player.weapon.img.w / 2,
-            player.y + TSZ / 2,
+            player.x + TSZ / 2 + Math.cos(angle) * player.weapon.img.w / 2 - Math.sin(angle) * player.weapon.img.h / 2,
+            player.y + TSZ / 2 + Math.sin(angle) * player.weapon.img.w / 2 + Math.cos(angle) * player.weapon.img.h / 2,
             angle,
             true);
     }
@@ -642,6 +697,16 @@ function draw() {
     }
     for (var i = 0; i < player.hp; i++) {
         img({x:TSZ*2, y:TSZ*2, w:TSZ, h:TSZ}, 10 + 50 * i, 10);
+    }
+    var ammos = ["bullets", "grenades", "energy"];
+    for (var i = 0; i < ammos.length; i++) {
+        img(ammoTypes[ammos[i]].indicator, 10, 10 + TSZ + 10 + 20 * i);
+        c.fillStyle = "white";
+        c.font = "14px Monospace";
+        c.fillText("" + player.ammo[ammos[i]], 35, 10 + TSZ + 10 + 20 * i + 9);
+    }
+    for (var i = 0; i < player.xp; i++) {
+        img({x:30, y:124, w:10, h:10}, canvas.width - i * 15, 10);
     }
 }
 
