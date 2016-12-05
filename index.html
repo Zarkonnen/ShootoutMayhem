@@ -73,6 +73,34 @@ var weaponTypes = {
         fuze: 0,
         ammo: "bullets"
     },
+    rageShooter: {
+        img: {x:0, y:80, w:14, h:7},
+        shot: {x:16, y:81, w:9, h:5},
+        reload: 150,
+        numShots: 1,
+        dmg: 2,
+        range: 450,
+        speed: 1.5,
+        jitter: 0.3,
+        blastRadius: 0,
+        bounce: false,
+        fuze: 0,
+        ammo: null
+    },
+    spurSpike: {
+        img: {x:0, y:0, w:0, h:0},
+        shot: {x:15, y:112, w:18, h:8},
+        reload: 3000,
+        numShots: 1,
+        dmg: 2,
+        range: 80,
+        speed: 1,
+        jitter: 0,
+        blastRadius: 0,
+        bounce: false,
+        fuze: 0,
+        ammo: null
+    },
     rifle: {
         name: "Rifle",
         img: {x:0, y:90, w:32, h:10},
@@ -386,7 +414,12 @@ function createPlayer(type) {
         reload: 0,
         x: MSZ * TSZ / 2,
         y: MSZ * TSZ / 2,
-        hp: type.hp
+        hp: type.hp,
+        rageMeter: 0,
+        abilityCooldown: 0,
+        leaping: 1000,
+        leapDx: 0,
+        leapDy: 0
     };
 }
 
@@ -664,17 +697,19 @@ function input(ms) {
         return;
     }
 
-    if (down("W") && !wallAt(player.x + 5, player.y - player.type.speed * ms) && !wallAt(player.x + TSZ - 5, player.y - player.type.speed * ms) && unitObstacleAt(player.x, player.y - player.type.speed * ms, player) == null) {
-        player.y -= player.type.speed * ms;
-    }
-    if (down("S") && !wallAt(player.x + 5, player.y + TSZ + player.type.speed * ms) && !wallAt(player.x + TSZ - 5, player.y + TSZ + player.type.speed * ms) && unitObstacleAt(player.x, player.y + player.type.speed * ms, player) == null) { 
-        player.y += player.type.speed * ms;
-    }
-    if (down("A") && !wallAt(player.x - player.type.speed * ms, player.y + 5) && !wallAt(player.x - player.type.speed * ms, player.y + TSZ - 5) && unitObstacleAt(player.x - player.type.speed * ms, player.y, player) == null) { 
-        player.x -= player.type.speed * ms;
-    }
-    if (down("D") && !wallAt(player.x + TSZ + player.type.speed * ms, player.y + 5) && !wallAt(player.x + TSZ + player.type.speed * ms, player.y + TSZ - 5) && unitObstacleAt(player.x + player.type.speed * ms, player.y, player) == null) { 
-        player.x += player.type.speed * ms;
+    if (player.leaping == 0) {
+        if (down("W") && !wallAt(player.x + 5, player.y - player.type.speed * ms) && !wallAt(player.x + TSZ - 5, player.y - player.type.speed * ms) && unitObstacleAt(player.x, player.y - player.type.speed * ms, player) == null) {
+            player.y -= player.type.speed * ms;
+        }
+        if (down("S") && !wallAt(player.x + 5, player.y + TSZ + player.type.speed * ms) && !wallAt(player.x + TSZ - 5, player.y + TSZ + player.type.speed * ms) && unitObstacleAt(player.x, player.y + player.type.speed * ms, player) == null) { 
+            player.y += player.type.speed * ms;
+        }
+        if (down("A") && !wallAt(player.x - player.type.speed * ms, player.y + 5) && !wallAt(player.x - player.type.speed * ms, player.y + TSZ - 5) && unitObstacleAt(player.x - player.type.speed * ms, player.y, player) == null) { 
+            player.x -= player.type.speed * ms;
+        }
+        if (down("D") && !wallAt(player.x + TSZ + player.type.speed * ms, player.y + 5) && !wallAt(player.x + TSZ + player.type.speed * ms, player.y + TSZ - 5) && unitObstacleAt(player.x + player.type.speed * ms, player.y, player) == null) { 
+            player.x += player.type.speed * ms;
+        }
     }
     if (down("E") && gunTakeDelay == 0) {
         for (var i = 0; i < droppedWeapons.length; i++) {
@@ -696,11 +731,34 @@ function input(ms) {
             }
         }
     }
-    if (down(" ") && player.offHand && gunSwitchDelay == 0) {
+    if (down("Q") && player.offHand && gunSwitchDelay == 0) {
         var tmp = player.weapon;
         player.weapon = player.offHand;
         player.offHand = tmp;
         gunSwitchDelay = 500;
+    }
+    if (down(" ") && player.abilityCooldown == 0) {
+        switch (player.type.name) {
+            case "S.P.U.R":
+                player.abilityCooldown = 500;
+                for (var i = 0; i < 12; i++) {
+                    var angle = i * Math.PI / 6;
+                    shoot(
+                        weaponTypes.spurSpike,
+                        player.x + TSZ / 2,
+                        player.y + TSZ / 2,
+                        angle,
+                        true);
+                }
+                break;
+            case "El Gato":
+                player.abilityCooldown = 1000;
+                var angle = Math.atan2(cursor.y - canvas.height / 2, cursor.x - canvas.width / 2);
+                player.leaping = 1000;
+                player.leapDx = Math.cos(angle);
+                player.leapDy = Math.sin(angle);
+                break;
+        }
     }
     if (mouseDown && player.reload == 0 && (player.weapon.ammo == null || player.ammo[player.weapon.ammo])) {
         player.reload = player.weapon.reload;
@@ -742,6 +800,40 @@ function update(ms) {
     gunSwitchDelay = Math.max(gunSwitchDelay - ms, 0);
     gunTakeDelay = Math.max(gunTakeDelay - ms, 0);
     player.reload = Math.max(player.reload - ms, 0);
+    player.abilityCooldown = Math.max(player.abilityCooldown - ms, 0);
+    player.rageMeter = Math.max(player.rageMeter - ms, 0);
+    player.leaping = Math.max(player.leaping - ms, 0);
+    
+    if (player.leaping) {
+        var newX = player.x + player.leapDx * ms;
+        var newY = player.y + player.leapDy * ms;
+        var hitUnit = unitObstacleAt(newX, newY, player);
+        if (hitUnit) {
+            hitUnit.hp -= 4;
+            for (var j = 0; j < 16; j++) {
+                var a = Math.random() * Math.PI * 2;
+                var spd = 0.05 + Math.random() * 0.3;
+                particles.push({
+                    color: "red",
+                    x: hitUnit.x + TSZ / 2,
+                    y: hitUnit.y + TSZ / 2,
+                    dx: Math.cos(a) * spd,
+                    dy: Math.sin(a) * spd,
+                    r: 2 + Math.floor(Math.random() * 2),
+                    life: 50 + Math.floor(Math.random() * 200)
+                });
+            }
+            player.leaping = 0;
+        } else if (wallAt(newX + 10, newY + 10) || wallAt(newX + TSZ - 10, newY + 10) || wallAt(newX + 10, newY - TSZ - 10) || wallAt(newX + TSZ - 10, newY + TSZ - 10)) {
+            player.x -= player.leapDx * ms;
+            player.y -= player.leapDy * ms;
+            player.leaping = 0;
+        } else {
+            player.x = newX;
+            player.y = newY;
+        }
+    }
+    
     for (var i = 0; i < particles.length; i++) {
         var particle = particles[i];
         particle.x += particle.dx * ms;
@@ -897,8 +989,8 @@ function update(ms) {
                 var spd = 0.05 + Math.random() * 0.3;
                 particles.push({
                     color: "red",
-                    x: shot.x,
-                    y: shot.y,
+                    x: enemy.x + TSZ / 2,
+                    y: enemy.y + TSZ / 2,
                     dx: Math.cos(a) * spd,
                     dy: Math.sin(a) * spd,
                     r: 2 + Math.floor(Math.random() * 2),
