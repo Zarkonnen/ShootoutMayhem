@@ -219,10 +219,25 @@ var weaponTypes = {
         bounce: false,
         fuze: 0,
         ammo: "energy"
+    },
+    abyssalInvoker: {
+        name: "Abyssal Invoker",
+        img: {x:44, y:121, w:15, h:16},
+        shot: {x:74, y:96, w:5, h:5},
+        reload: 350,
+        numShots: 1,
+        dmg: 1,
+        range: 600,
+        speed: 0.8,
+        jitter: 0,
+        blastRadius: 0,
+        bounce: false,
+        fuze: 0,
+        ammo: "energy"
     }
 };
 
-var droppableWeapons = [weaponTypes.rifle, weaponTypes.shotgun, weaponTypes.bowieKnife, weaponTypes.gatlingGun, weaponTypes.abyssalProjector, weaponTypes.grenades];
+var droppableWeapons = [weaponTypes.rifle, weaponTypes.shotgun, weaponTypes.bowieKnife, weaponTypes.gatlingGun, weaponTypes.abyssalProjector, weaponTypes.grenades, weaponTypes.abyssalInvoker];
 
 var enemyTypes = {
     blackHat: {
@@ -1127,7 +1142,7 @@ function draw() {
         if (droppedWeapon.type != player.weapon && droppedWeapon.type != player.offHand && (player.x + TSZ / 2 - droppedWeapon.x) * (player.x + TSZ / 2 - droppedWeapon.x) + (player.y + TSZ / 2 - droppedWeapon.y) * (player.y + TSZ / 2 - droppedWeapon.y) < 25 * 25) {
             c.fillStyle = "white";
             c.font = "14px Monospace";
-            c.fillText("Press E to take " + droppedWeapon.type.name, droppedWeapon.x, droppedWeapon.y - TSZ);
+            c.fillText("Take " + droppedWeapon.type.name + " [E]", droppedWeapon.x, droppedWeapon.y - TSZ);
             break;
         }
     }
@@ -1172,7 +1187,7 @@ function draw() {
         }
         c.fillRect(10 + 2, 120 + 2, (200 - 4) * amt, 40 - 4);
         c.fillStyle = "white";
-        c.fillText(player.abilityCooldown ? "Rage!!!" : (amt >= 1 ? "Space: Rage" : "Rage"), 20, 140 + 4);
+        c.fillText(player.abilityCooldown ? "Rage!!!" : (amt >= 1 ? "Rage [Space]" : "Rage"), 20, 140 + 4);
     }
     for (var i = 0; i < player.xp; i++) {
         img({x:30, y:124, w:10, h:10}, canvas.width - 20 - i * 15, 10);
