@@ -74,6 +74,7 @@ var weaponTypes = {
         ammo: "bullets"
     },
     rageShooter: {
+        name: "Rage!!!",
         img: {x:0, y:80, w:14, h:7},
         shot: {x:16, y:81, w:9, h:5},
         reload: 150,
@@ -405,6 +406,7 @@ function createPlayer(type) {
         type: type,
         weapon: weaponTypes.sixShooter,
         offHand: null,
+        offHandRaging: null,
         ammo: {
             bullets: 80,
             grenades: 0,
@@ -731,7 +733,7 @@ function input(ms) {
             }
         }
     }
-    if (down("Q") && player.offHand && gunSwitchDelay == 0) {
+    if (down("Q") && player.offHand && gunSwitchDelay == 0 && !(player.type.name == "Taquito James" && player.abilityCooldown > 0)) {
         var tmp = player.weapon;
         player.weapon = player.offHand;
         player.offHand = tmp;
@@ -758,9 +760,21 @@ function input(ms) {
                 player.leapDx = Math.cos(angle);
                 player.leapDy = Math.sin(angle);
                 break;
+            case "Taquito James":
+                player.abilityCooldown = 10000;
+                player.rageMeter = 0;
+                break;
         }
     }
-    if (mouseDown && player.reload == 0 && (player.weapon.ammo == null || player.ammo[player.weapon.ammo])) {
+    if (player.type.name == "Taquito James" && player.abilityCooldown > 0) {
+        if (player.weapon != weaponTypes.rageShooter) {
+            player.offHandRaging = player.weapon;
+            player.weapon = weaponTypes.rageShooter;
+        }
+    } else if (player.weapon == weaponTypes.rageShooter) {
+        player.weapon = player.offHandRaging;
+    }
+    if ((mouseDown || (player.type.name == "Taquito James" && player.abilityCooldown > 0)) && player.reload == 0 && (player.weapon.ammo == null || player.ammo[player.weapon.ammo])) {
         player.reload = player.weapon.reload;
         if (player.weapon.ammo) {
             player.ammo[player.weapon.ammo]--;
@@ -936,6 +950,9 @@ function update(ms) {
                         player.hp -= shot.weapon.dmg;
                     }
                 }
+            }
+            if (!hitUnit && shot.byPlayer && player.abilityCooldown == 0) {
+                player.rageMeter += 7000;
             }
             shots.splice(i, 1);
             i--;
@@ -1141,7 +1158,21 @@ function draw() {
     if (player.offHand) {
         img(player.offHand.img, 70, 20 + TSZ + 20);
         c.fillStyle = "white";
-        c.fillText(player.offHand.name + " [Space]", 110, 20 + TSZ + 20 + 9);
+        c.fillText(player.offHand.name + " [Q]", 110, 20 + TSZ + 20 + 9);
+    }
+    if (player.type.name == "Taquito James") {
+        c.fillStyle = "white";
+        c.fillRect(10, 120, 200, 40);
+        c.fillStyle = "#462415";
+        c.fillRect(10 + 1, 120 + 1, 200 - 2, 40 - 2);
+        c.fillStyle = "red";
+        var amt = Math.min(1.0, player.rageMeter * 1.0 / 200000);
+        if (player.abilityCooldown) {
+            amt = Math.min(1.0, player.abilityCooldown * 1.0 / 10000);
+        }
+        c.fillRect(10 + 2, 120 + 2, (200 - 4) * amt, 40 - 4);
+        c.fillStyle = "white";
+        c.fillText(player.abilityCooldown ? "Rage!!!" : (amt >= 1 ? "Space: Rage" : "Rage"), 20, 140 + 4);
     }
     for (var i = 0; i < player.xp; i++) {
         img({x:30, y:124, w:10, h:10}, canvas.width - 20 - i * 15, 10);
