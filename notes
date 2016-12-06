@@ -1,5 +1,4 @@
-- audio
-- abilities
+- fix leap
 
 Ability ideas:
 - Faster shots
@@ -25,3 +24,35 @@ Enemy
 - Sentient Tumbleweed
 - Angry Pony
 - T.R.A.I.N
+
+---
+
+var abilityNames = ["gunslinger", "deathTrickPony", "thickHide", "arsenal", "mayhem", "scavenger", "rosyCheeks"];
+
+gunslinger: rifle
+deathtrickpony: pony
+thickhide: cactus
+arsenal: ammo crates
+mayhem: cow skull
+scavenger: ammo crate, health crate, XP
+rosyCheeks: health crates
+
+https://howlerjs.com/
+
++ pistol
++ rifle
++ grenade
++ gatling
++ knife
++ invoker
++ projector
++ spur spars
++ meowl
++ rage
+- pony attack
+- hat hit
+- tumble hit
+- pony hit
+- train hit
++ pickup
++ no ammo
