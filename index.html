@@ -107,7 +107,7 @@ var weaponTypes = {
         reload: 3000,
         numShots: 1,
         dmg: 2,
-        range: 90,
+        range: 100,
         speed: 1,
         jitter: 0,
         blastRadius: 0,
@@ -512,7 +512,7 @@ function createPlayer(type) {
             grenades: 0,
             energy: 0
         },
-        xp: 2,
+        xp: 0,
         level: 1,
         reload: 0,
         x: MSZ * TSZ / 2,
@@ -808,7 +808,7 @@ function input(ms) {
                 generateMap();
                 playerSelect = false;
                 levelIntro = true;
-                clickPause = 1000;
+                clickPause = 500;
             }
         }
         click = null;
@@ -835,7 +835,7 @@ function input(ms) {
             victory = false;
             playerSelect = true;
             level = 0;
-            clickPause = 1000;
+            clickPause = 500;
         }
         return;
     }
@@ -904,12 +904,36 @@ function input(ms) {
                 }
                 break;
             case "El Gato":
-                leapSound.play();
-                player.abilityCooldown = 1000;
                 var angle = Math.atan2(cursor.y - canvas.height / 2, cursor.x - canvas.width / 2);
-                player.leaping = 1000;
-                player.leapDx = Math.cos(angle);
-                player.leapDy = Math.sin(angle);
+                var ldx = Math.cos(angle);
+                var ldy = Math.sin(angle);
+                // Precalculate leap length.
+                var px = player.x + 300 * ldx;
+                var py = player.y + 300 * ldy;
+                var pms = 300;
+                while (true) {
+                    if (wallAt(px + 10, py + 10) ||
+                        wallAt(px + TSZ - 10, py + 10) ||
+                        wallAt(px + 10, py - TSZ - 10) ||
+                        wallAt(px + TSZ - 10, py + TSZ - 10))
+                    {
+                        pms -= 16;
+                        px -= 16 * ldx;
+                        py -= 16 * ldy;
+                        if (pms < 100) {
+                            break;
+                        }
+                    } else {
+                        break;
+                    }
+                }
+                if (pms >= 100) {
+                    leapSound.play();
+                    player.abilityCooldown = 1000;
+                    player.leaping = pms;
+                    player.leapDx = ldx;
+                    player.leapDy = ldy;
+                }
                 break;
             case "Taquito James":
                 rageSound.play();
@@ -953,7 +977,7 @@ function update(ms) {
     if (player.hp <= 0) {
         playerSelect = true;
         level = 0;
-        clickPause = 1000;
+        clickPause = 500;
         return;
     }
     if (enemies.length == 0) {
@@ -961,7 +985,7 @@ function update(ms) {
             victory = true;
             level = 0;
             generateMap();
-            clickPause = 1000;
+            clickPause = 500;
         } else {
             if (player.abilities.rosyCheeks) {
                 player.hp = Math.min(player.type.hp, player.hp + 2);
@@ -969,7 +993,7 @@ function update(ms) {
             level++;
             levelIntro = true;
             generateMap();
-            clickPause = 1000;
+            clickPause = 500;
         }
         return;
     }
@@ -977,7 +1001,7 @@ function update(ms) {
         player.xp -= player.level + 1;
         player.level++;
         levelUp = true;
-        clickPause = 1000;
+        clickPause = 500;
         availableAbilities = [];
         while (availableAbilities.length < 3) {
             var pick = abilityNames[Math.floor(Math.random() * abilityNames.length)];
@@ -1001,13 +1025,19 @@ function update(ms) {
     }
     
     if (player.leaping) {
-        var newX = player.x + player.leapDx * ms;
-        var newY = player.y + player.leapDy * ms;
+        var remainingMs = Math.min(ms, player.leaping);
+        var newX = player.x + player.leapDx * remainingMs;
+        var newY = player.y + player.leapDy * remainingMs;
         var hitUnit = unitObstacleAt(newX, newY, player);
-        if (hitUnit) {
-            hitUnit.hp -= 4;
+        if (hitUnit && !(
+            wallAt(newX + 10, newY + 10) ||
+            wallAt(newX + TSZ - 10, newY + 10) ||
+            wallAt(newX + 10, newY - TSZ - 10) ||
+            wallAt(newX + TSZ - 10, newY + TSZ - 10))
+        ) {
+            hitUnit.hp -= 3;
             hitUnit.lastHitBySpecialMove = true;
-            for (var j = 0; j < 16; j++) {
+            for (var j = 0; j < 12; j++) {
                 var a = Math.random() * Math.PI * 2;
                 var spd = 0.05 + Math.random() * 0.3;
                 particles.push({
@@ -1020,10 +1050,6 @@ function update(ms) {
                     life: 50 + Math.floor(Math.random() * 200)
                 });
             }
-            player.leaping = 0;
-        } else if (wallAt(newX + 10, newY + 10) || wallAt(newX + TSZ - 10, newY + 10) || wallAt(newX + 10, newY - TSZ - 10) || wallAt(newX + TSZ - 10, newY + TSZ - 10)) {
-            player.x -= player.leapDx * ms;
-            player.y -= player.leapDy * ms;
             player.leaping = 0;
         } else {
             player.x = newX;
@@ -1327,7 +1353,9 @@ function draw() {
         var enemy = enemies[i];
         img(enemy.type.img, enemy.x, enemy.y);    
     }
-    img(player.type.img, player.x, player.y);
+    if (player.leaping == 0) {
+        img(player.type.img, player.x, player.y);
+    }
     for (var i = 0; i < shots.length; i++) {
         var shot = shots[i];
         c.translate(shot.x, shot.y);
@@ -1355,6 +1383,9 @@ function draw() {
             img(map[y][x].img, x * TSZ, y * TSZ + map[y][x].dy);
         }
     }}
+    if (player.leaping) {
+        img(player.type.img, player.x, player.y);
+    }
     for (var i = 0; i < droppedWeapons.length; i++) {
         var droppedWeapon = droppedWeapons[i];
         if (droppedWeapon.type != player.weapon && droppedWeapon.type != player.offHand && (player.x + TSZ / 2 - droppedWeapon.x) * (player.x + TSZ / 2 - droppedWeapon.x) + (player.y + TSZ / 2 - droppedWeapon.y) * (player.y + TSZ / 2 - droppedWeapon.y) < 25 * 25) {
