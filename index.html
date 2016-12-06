@@ -104,7 +104,7 @@ var weaponTypes = {
         name: "Rage!!!",
         img: {x:0, y:80, w:14, h:7},
         shot: {x:16, y:81, w:9, h:5},
-        sound: new Howl({src: ["sounds/sixshooter.ogg", "sounds/sixshooter.mp3"]}),
+        sound: new Howl({src: ["sounds/sixshooter.ogg", "sounds/sixshooter.mp3"], volume: 0.5}),
         reload: 150,
         numShots: 1,
         dmg: 2,
@@ -245,7 +245,7 @@ var weaponTypes = {
         name: "Abyssal Projector",
         img: {x:41, y:94, w:30, h:11},
         shot: {x:74, y:96, w:5, h:5},
-        sound: new Howl({src: ["sounds/projector.ogg", "sounds/projector.mp3"]}),
+        sound: new Howl({src: ["sounds/projector.ogg", "sounds/projector.mp3"], volume: 0.7}),
         reload: 50,
         numShots: 1,
         dmg: 1,
@@ -476,6 +476,7 @@ var playerTypes = [
         name: "Taquito James",
         desc1: "Ability: Rage",
         desc0: "More XP",
+        help: "Q to rage when the meter is full.",
         img: {x: 0, y: 1*TSZ, w: TSZ, h: TSZ},
         large: {x: 0, y:160, w:160, h:160},
         hp: 6,
@@ -486,6 +487,7 @@ var playerTypes = [
         name: "El Gato",
         desc1: "Ability: Leap",
         desc0: "More HP",
+        help: "Q to leap.",
         img: {x: TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
         large: {x: 160, y:160, w:160, h:160},
         hp: 9,
@@ -496,6 +498,7 @@ var playerTypes = [
         name: "S.P.U.R",
         desc1: "Ability: Whirl",
         desc0: "Faster",
+        help: "Q to fire a halo of blades.",
         img: {x: 2*TSZ, y: 1*TSZ, w: TSZ, h: TSZ},
         large: {x: 320, y:160, w:160, h:160},
         hp: 6,
@@ -817,9 +820,10 @@ function input(ms) {
         return;
     }
     if (playerSelect) {
+        var x = canvas.width / 2 - 570 / 2;
         for (var i = 0; i < playerTypes.length; i++) {
             var pt = playerTypes[i];
-            if (click && click.x >= 115 + i * 200 && click.x <= 115 + i * 200 + 170 && click.y >= 270 && click.y <= 270 + 290) {
+            if (click && click.x >= x + i * 200 && click.x <= x + i * 200 + 170 && click.y >= 270 && click.y <= 270 + 290) {
                 createPlayer(pt);
                 generateMap();
                 playerSelect = false;
@@ -831,9 +835,10 @@ function input(ms) {
         return;
     }
     if (levelUp) {
+        var x = canvas.width / 2 - 570 / 2;
         for (var i = 0; i < availableAbilities.length; i++) {
             var ab = availableAbilities[i];
-            if (click && click.x >= 115 + i * 200 && click.x <= 115 + i * 200 + 170 && click.y >= 270 && click.y <= 270 + 290) {
+            if (click && click.x >= x + i * 200 && click.x <= x + i * 200 + 170 && click.y >= 270 && click.y <= 270 + 290) {
                 player.abilities[ab] = 1;
                 if (ab == "arsenal") {
                     player.ammo.bullets = Math.min(ammoTypes.bullets.max, player.ammo.bullets + ammoTypes.bullets.max / 2);
@@ -858,6 +863,7 @@ function input(ms) {
     if (levelIntro) {
         if (click) {
             levelIntro = false;
+            clickPause = 0;
         }
         return;
     }
@@ -1035,7 +1041,8 @@ function update(ms) {
     player.mayhemMeter = Math.max(player.mayhemMeter - ms, 0);
     player.leaping = Math.max(player.leaping - ms, 0);
     
-    if (player.mayhemMeter >= 100000 && player.hp < player.type.hp) {
+    if (player.mayhemMeter >= 30000 && player.hp < player.type.hp) {
+        pickupSound.play();
         player.mayhemMeter = 0;
         player.hp++;
     }
@@ -1281,20 +1288,20 @@ function draw() {
         c.fillStyle = "#905b35";
         c.fillRect(0, 0, canvas.width, canvas.height);
         img({x:7, y:689, w:528, h:168}, canvas.width / 2 - 528 / 2, 50);
-        
+        var x = canvas.width / 2 - 570 / 2;
         for (var i = 0; i < playerTypes.length; i++) {
             var pt = playerTypes[i];
-            var hover = cursor.x >= 115 + i * 200 && cursor.x <= 115 + i * 200 + 170 && cursor.y >= 270 && cursor.y <= 270 + 290;
+            var hover = cursor.x >= x + i * 200 && cursor.x <= x + i * 200 + 170 && cursor.y >= 270 && cursor.y <= 270 + 290;
             c.fillStyle = hover ? "#c37b47" : "#5e3b23";
-            c.fillRect(115 + i * 200, 270, 170, 290);
-            img(pt.large, 120 + i * 200, 280);
+            c.fillRect(x + i * 200, 270, 170, 290);
+            img(pt.large, x + 5 + i * 200, 280);
             c.resetTransform(); 
             c.fillStyle = "white";
             c.font = "18px Monospace";
-            c.fillText(pt.name, 125 + i * 200, 480);
+            c.fillText(pt.name, x + 10 + i * 200, 480);
             c.font = "14px Monospace";
-            c.fillText(pt.desc0, 125 + i * 200, 520);
-            c.fillText(pt.desc1, 125 + i * 200, 540);
+            c.fillText(pt.desc0, x + 10 + i * 200, 520);
+            c.fillText(pt.desc1, x + 10 + i * 200, 540);
         }
         
         c.fillStyle = "white";
@@ -1309,18 +1316,20 @@ function draw() {
         c.font = "18px Monospace";
         c.fillText("Level Up! Choose a new ability.", canvas.width / 2 - c.measureText("Level Up! Choose a new ability.").width / 2, 150);
         
+        var x = canvas.width / 2 - 570 / 2;
+        
         for (var i = 0; i < availableAbilities.length; i++) {
             var ab = abilities[availableAbilities[i]];
-            var hover = cursor.x >= 115 + i * 200 && cursor.x <= 115 + i * 200 + 170 && cursor.y >= 270 && cursor.y <= 270 + 290;
+            var hover = cursor.x >= x + i * 200 && cursor.x <= x + i * 200 + 170 && cursor.y >= 270 && cursor.y <= 270 + 290;
             c.fillStyle = hover ? "#c37b47" : "#5e3b23";
-            c.fillRect(115 + i * 200, 270, 170, 290);
-            img(ab.img, 120 + i * 200, 280);
+            c.fillRect(x + i * 200, 270, 170, 290);
+            img(ab.img, x + 5 + i * 200, 280);
             c.fillStyle = "white";
             c.font = "18px Monospace";
-            c.fillText(ab.name, 125 + i * 200, 480);
+            c.fillText(ab.name, x + 10 + i * 200, 480);
             c.font = "14px Monospace";
-            c.fillText(ab.desc0, 125 + i * 200, 520);
-            c.fillText(ab.desc1, 125 + i * 200, 540);
+            c.fillText(ab.desc0, x + 10 + i * 200, 520);
+            c.fillText(ab.desc1, x + 10 + i * 200, 540);
         }
         
         c.fillStyle = "white";
@@ -1346,6 +1355,14 @@ function draw() {
         c.font = "18px Monospace";
         var text = "Level " + (level + 1) + ": " + levels[level].name;
         c.fillText(text, canvas.width / 2 - c.measureText(text).width / 2, 400);
+        var hy = 450;
+        var hx = canvas.width / 2 - c.measureText(text).width / 2;
+        c.font = "14px Monospace";
+        c.fillText("WASD to move, cursor to aim and shoot.", hx, hy);
+        hy += 20;
+        c.fillText("E to pick up weapons, Space to switch.", hx, hy);
+        hy += 20;
+        c.fillText(player.type.help, hx, hy);
         return;
     }
 
