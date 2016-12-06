@@ -2,6 +2,8 @@
 
 An intentionally non-juicy clone of Nuclear Throne for demonstration purposes.
 
+[Play it in the browser!](https://zarkonnen.github.io/ShootoutMayhem/index.html)
+
 * All sound effects are CC0 from [freesound.org](http://freesound.org/).
 * The soundtrack is a free download from [Purple Planet](http://www.purple-planet.com/)
 * The jQuery and Howler libraries used are licensed under the MIT license.
