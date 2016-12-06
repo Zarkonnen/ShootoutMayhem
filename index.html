@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html>
+<html style="margin: 0; padding: 0;">
     <head>
         <title>Shootout Mayhem</title>
         <script src="jquery-3.1.1.min.js"></script>
         <script src="howler.min.js"></script>
     </head>
-    <body>
-        <canvas width="800" height="600" id="gameCanvas" style="cursor: none;"></canvas>
+    <body style="margin: 0; padding: 0; background: #2e1d11;">
+        <canvas width="800" height="600" allowfullscreen="true" id="gameCanvas" style="cursor: none; margin-left: 10px; margin-top: 10px;"></canvas>
         <script>
 /*
     Shootout Mayhem, a simple HTML5 twin-stick shooter.
@@ -23,7 +23,7 @@
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    along with this program.  If not, see http://www.gnu.org/licenses.
 */
 
 /** THE GAME ITSELF **********************************************************/
@@ -1534,6 +1534,25 @@ function nextFrame() {
 
 // Once everything is set up, start game loop.
 requestAnimationFrame(nextFrame);
+
+jQuery(window).resize(function() {
+    canvas.width = window.innerWidth - 20;
+    canvas.height = window.innerHeight - 20;
+});
+jQuery(window).ready(function() {
+    canvas.width = window.innerWidth - 20;
+    canvas.height = window.innerHeight - 20;
+});
+ 
+canvas.addEventListener("click", function() {
+    if (canvas.webkitRequestFullScreen) {
+        canvas.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT);
+    } else if (canvas.mozRequestFullScreen) {
+        canvas.mozRequestFullScreen();
+    } else if (canvas.requestFullScreen) {
+        canvas.requestFullScreen();
+    }
+});
         </script>
     </body>
 </html>
